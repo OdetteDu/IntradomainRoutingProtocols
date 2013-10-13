@@ -2,6 +2,7 @@
 #define ROUTINGPROTOCOLIMPL_H
 
 #include "RoutingProtocol.h"
+#include "Node.h"
 
 class RoutingProtocolImpl : public RoutingProtocol {
   public:
@@ -37,6 +38,23 @@ class RoutingProtocolImpl : public RoutingProtocol {
 
  private:
     Node *sys; // To store Node object; used to access GSR9999 interfaces 
+	/* EDIT: by Yanfei Wu */
+
+	// currently using protocol
+	eProtocolType protocol;
+
+	// number of ports in this router
+	unsigned short numOfPorts;
+
+	// router ID
+	unsigned short myID;
+
+	// data for distinguishing types of alarm
+	char* alarm_exp;	// expiration checking
+	char* alarm_pp;		// ping-pong update
+	char* alarm_update;	// protocol update
+
+	/* END EDIT: Yanfei Wu */
 };
 
 #endif
