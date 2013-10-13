@@ -15,7 +15,8 @@ HEADRES =\
 	Link.h\
 	Node.h\
 	RoutingProtocol.h\
-	Simulator.h
+	Simulator.h\
+	Port.h
 
 %.o: %.cc
 	$(CC) $(COPTS) -c $< -o $@
@@ -29,7 +30,7 @@ $(OBJS): global.h
 Event.o: Event.h Link.h Node.h Simulator.h
 Link.o: Event.h Link.h Node.h Simulator.h
 Node.o: Event.h Link.h Node.h Simulator.h
-Simulator.o: Event.h Link.h Node.h RoutingProtocol.h Simulator.h 
+Simulator.o: Event.h Link.h Node.h RoutingProtocol.h Simulator.h Port.h
 RoutingProtocolImpl.o: RoutingProtocolImpl.h
 
 clean:

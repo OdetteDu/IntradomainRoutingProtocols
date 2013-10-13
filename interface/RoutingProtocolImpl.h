@@ -3,6 +3,7 @@
 
 #include "RoutingProtocol.h"
 #include "Node.h"
+#include "Port.h"
 
 class RoutingProtocolImpl : public RoutingProtocol {
   public:
@@ -39,7 +40,7 @@ class RoutingProtocolImpl : public RoutingProtocol {
  private:
     Node *sys; // To store Node object; used to access GSR9999 interfaces 
 	/* EDIT: by Yanfei Wu */
-
+	/* variables */
 	// currently using protocol
 	eProtocolType protocol;
 
@@ -53,6 +54,48 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	char* alarm_exp;	// expiration checking
 	char* alarm_pp;		// ping-pong update
 	char* alarm_update;	// protocol update
+
+	// port informations
+	Port *ports;
+
+	// forwarding table informations
+	Forward *forwards;
+
+	// end time for the system
+	// just for testing, will be removed
+	unsigned int endTime;
+
+	/* functions */
+	// set the expiration checking alarm
+	void setExpAlarm();
+	// set the ping-pong message alarm
+	void setPPAlarm();
+	// set the protocol update alarm
+	void setUpdateAlarm();
+
+	// handle the expiration checking alarm; return true if succeed
+	bool handleExp();
+	// handle the ping-pong message alarm; return true if succeed
+	bool handlePP();
+	// handle the protocol update alarm; return true if succeed
+	bool handleUpdate();
+
+	// update status (tables) for Distance Vector Protocol
+	bool DVUpdate();
+	// update status (tables) for Link State Protocol
+	bool LSUpdate();
+
+	// initialize all ports
+	void initPorts(int number);
+
+	// find forwarding entry
+	Forward* findForward(unsigned int dest);
+	// update table entry
+	void updateForward(unsigned int destID, unsigned int nextID);
+	// disable a link in entry
+	void disableForward(unsigned int destID);
+	// free forwarding table
+	void freeForward(Forward* toFree);
 
 	/* END EDIT: Yanfei Wu */
 };
