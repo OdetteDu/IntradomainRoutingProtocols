@@ -15,6 +15,7 @@ struct _Forward;
 typedef struct _Forward {
 	unsigned short destID;
 	unsigned short nextID;
+	unsigned int nextPort;
 	bool isAlive;
 	struct _Forward *next;
 } Forward;

@@ -162,12 +162,13 @@ Forward* RoutingProtocolImpl::findForward(unsigned int dest) {
 /* update a table entry with destination and the next router to get to it
  * if entry doen't exist, a new one will be created
  */
-void RoutingProtocolImpl::updateForward(unsigned int destID, unsigned int nextID) {
+void RoutingProtocolImpl::updateForward(unsigned short destID, unsigned short nextID, unsigned int nextPort) {
 	Forward* fw = findForward(destID);
 	if (fw == NULL) {
 		fw = new Forward;
 		fw->destID = destID;
 		fw->nextID = nextID;
+		fw->nextPort = nextPort;
 		fw->isAlive = true;
 		fw->next = forwards;
 		forwards = fw;
@@ -175,6 +176,7 @@ void RoutingProtocolImpl::updateForward(unsigned int destID, unsigned int nextID
 	else {
 		fw->destID = destID;
 		fw->nextID = nextID;
+		fw->nextPort = nextPort;
 		fw->isAlive = true;
 	}
 }

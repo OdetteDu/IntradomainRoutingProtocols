@@ -38,7 +38,7 @@ class RoutingProtocolImpl : public RoutingProtocol {
     // a neighbor router.
 
  private:
-    Node *sys; // To store Node object; used to access GSR9999 interfaces 
+    Node *sys; // To store Node object; used to access GSR9999 interfaces
 	/* EDIT: by Yanfei Wu */
 	/* variables */
 	// currently using protocol
@@ -91,7 +91,7 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	// find forwarding entry
 	Forward* findForward(unsigned int dest);
 	// update table entry
-	void updateForward(unsigned int destID, unsigned int nextID);
+	void updateForward(unsigned short destID, unsigned short nextID, unsigned int nextPort);
 	// disable a link in entry
 	void disableForward(unsigned int destID);
 	// free forwarding table
