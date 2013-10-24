@@ -148,7 +148,7 @@ bool RoutingProtocolImpl::handlePP() {
 	
 	//------------------make ping and pong package-----------------------------
 	ePacketType pingtype = PING;
-	int totalsize = 4;
+	int totalsize = 12;
 	//------------------end make package----------------------------------------
 	
 	
