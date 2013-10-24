@@ -95,20 +95,24 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 		char* pongpackage = malloc(12);
 		ePacketType pongtype = PONG;
 		*(char *)(pongpackage) = pongtype;  //packet type
-		*(char *)(pongpackage+2) = size; //size
-		*(char *)(pongpackage+4) = myID; //sourceID
-		*(char *)(pongpackage+6) = packet[4]; //sourceID
-		*(char *)(pongpackage+8) = packet[8];//time stamp
+		*(unsigned short *)(pongpackage+2) = size; //size
+		*(unsigned short *)(pongpackage+4) = myID; //sourceID
+		*(unsigned short *)(pongpackage+6) = *(unsigned short*)packet[4]; //sourceID
+		*(int *)(pongpackage+8) = *(int*)packet[8];//time stamp
 		send(port,pongpackage,size);
 	}else if(thetype == PONG){
-		int startsendtime = *(unsigned short int*)packet[8];
+		int startsendtime = *(int*)packet[8];
 		int currentTime = sys-> time();
 		int duration = currentTime - startsendtime;
 		int count = numOfPorts;
 		while(count > 0){
 			count --;
-			if(ports[]){
-				
+			if(ports[count] -> number == port){
+				ports[count] -> linkto = *(unsigned short*)packet[4];
+				ports[count] -> cost = duration;
+				ports[count] -> update = currentTime;
+				ports[count] -> isAlive = true;
+				break;
 			}
 		}
 	}
@@ -144,7 +148,7 @@ bool RoutingProtocolImpl::handlePP() {
 	
 	//------------------make ping and pong package-----------------------------
 	ePacketType pingtype = PING;
-	int = 4;
+	int totalsize = 4;
 	//------------------end make package----------------------------------------
 	
 	
@@ -155,9 +159,9 @@ bool RoutingProtocolImpl::handlePP() {
 		//----------------------------making ping package---------------
 		char* pingpackage = malloc(12);
 		*(char *)(pingpackage) = pingtype;  //packet type
-		*(char *)(pingpackage+2) = payloadsize; //size
-		*(char *)(pingpackage+4) = myID; //sourceID
-		*(char *)(pingpackage+8) = sys->time();//time stamp
+		*(unsigned short *)(pingpackage+2) = totalsize; //size
+		*(unsigned short *)(pingpackage+4) = myID; //sourceID
+		*(int *)(pingpackage+8) = sys->time();//time stamp
 		//----------------------------end making------------------------
 		sys->send(ports[count]->number,pingpackage,12);
 		//char * recievePackage = malloc(12);
