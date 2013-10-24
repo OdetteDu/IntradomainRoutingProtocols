@@ -118,6 +118,8 @@ bool RoutingProtocolImpl::handleExp() {
 bool RoutingProtocolImpl::handlePP() {
 	printf("Node %d: pingpong message! time: %d\n\n", myID, sys->time());
 	/* TODO: for Kai Wu*/
+	int count = 
+	while ()
 	return true;
 }
 
