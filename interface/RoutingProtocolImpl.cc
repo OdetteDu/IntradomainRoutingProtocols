@@ -89,6 +89,21 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
 	// TODO: for EVERYONE!
+	char* packageType = malloc(1);
+	packageType = packet[0];
+	
+	if(strcmp(packageType, "PING") == 0){
+		char* pongpackage = malloc(4*3*sizeof(char));
+		char* pongstring = "PONG";
+		*(char *)(pongpackage) = pongstring;  //packet type
+		*(char *)(pongpackage+2) = size; //size
+		*(char *)(pongpackage+4) = myID; //sourceID
+		*(char *)(pongpackage+6) = packet[4]; //sourceID
+		*(char *)(pongpackage+8) = packet[8];//time stamp
+		send(port,pongpackage,size);
+	}else if(strcmp(packageType, "PONG") == 0){
+		//do nothing. Something will be done after call this method.
+	}
 }
 
 	/*EDIT: by Yanfei Wu */
