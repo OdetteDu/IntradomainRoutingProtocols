@@ -89,10 +89,9 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
 	// TODO: for EVERYONE!
-	char* packageType = malloc(1);
-	packageType = packet[0];
+	ePacketType thetype = *(char *)packet;
 	
-	if(strcmp(packageType, "PING") == 0){
+	if(){
 		char* pongpackage = malloc(4*3*sizeof(char));
 		char* pongstring = "PONG";
 		*(char *)(pongpackage) = pongstring;  //packet type
