@@ -120,20 +120,33 @@ bool RoutingProtocolImpl::handlePP() {
 	/* TODO: for Kai Wu*/
 	
 	//------------------make ping and pong package-----------------------------
-	char* pingpackage = malloc(4*3*sizeof(char*));
 	char* pingstring = "PING";//four bytes?
 	char* pongstring = "PONG";
 	int payloadsize = 4;
-	*(char *)(pingpackage) = pingstring;
-	*(char *)(pingpackage+2) = payloadsize;
-	*(char *)(pingpackage+4) = myID;
 	//------------------end make package----------------------------------------
 	
 	
 	int count = numOfPorts;
+	int *neighborStatus = malloc(count * sizeof(int));//-1 means disconnect
 	while (count > 0){
 		//ports[count] do something
-		
+		//----------------------------making ping package---------------
+		char* pingpackage = malloc(4*3*sizeof(char));
+		*(char *)(pingpackage) = pingstring;  //packet type
+		*(char *)(pingpackage+2) = payloadsize; //size
+		*(char *)(pingpackage+4) = myID; //sourceID
+		*(char *)(pingpackage+8) = sys->time();//time stamp
+		//----------------------------end making------------------------
+		send(ports[count],pingpackage,12);
+		char * recievePackage = malloc(4*3*sizeof(char));
+		recv(ports[count],recievePackage,12);
+		int currentTime = sys-> time();
+		int duration = currentTime - recievePackage[8];
+		if(duration >= 15000 || duration <= 0){//timeout -> may need to figure out when duration is <= 0
+			neighborStatus[ports[count]] = -1;//-1 for timeout
+		}else{
+			neighborStatus[ports[count]] = duration; //calculate the duration
+		}
 		count --;
 	}
 	return true;
