@@ -92,7 +92,7 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 	ePacketType thetype = *(char *)packet;
 	
 	if(thetype == PING){
-		char* pongpackage = malloc(4*3*sizeof(char));
+		char* pongpackage = malloc(12);
 		ePacketType pongtype = PONG;
 		*(char *)(pongpackage) = pongtype;  //packet type
 		*(char *)(pongpackage+2) = size; //size
@@ -140,9 +140,9 @@ bool RoutingProtocolImpl::handlePP() {
 	
 	
 	int count = numOfPorts;
-	int *neighborStatus = malloc(count * sizeof(int));//-1 means disconnect
 	while (count > 0){
 		//ports[count] do something
+		count --;
 		//----------------------------making ping package---------------
 		char* pingpackage = malloc(12);
 		*(char *)(pingpackage) = pingtype;  //packet type
@@ -150,17 +150,17 @@ bool RoutingProtocolImpl::handlePP() {
 		*(char *)(pingpackage+4) = myID; //sourceID
 		*(char *)(pingpackage+8) = sys->time();//time stamp
 		//----------------------------end making------------------------
-		sys->send(ports[count],pingpackage,12);
-		char * recievePackage = malloc(12);
-		recv(ports[count],recievePackage,12);
-		int currentTime = sys-> time();
+		sys->send(ports[count]->number,pingpackage,12);
+		//char * recievePackage = malloc(12);
+	//	recv(ports[count],recievePackage,12);
+	/*	int currentTime = sys-> time();
 		int duration = currentTime - recievePackage[8];
 		if(duration >= 15000 || duration <= 0){//timeout -> may need to figure out when duration is <= 0
 			neighborStatus[ports[count]] = -1;//-1 for timeout
 		}else{
 			neighborStatus[ports[count]] = duration; //calculate the duration
-		}
-		count --;
+		}*/
+		
 	}
 	return true;
 }
