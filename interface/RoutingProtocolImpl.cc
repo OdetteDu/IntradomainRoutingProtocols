@@ -99,7 +99,7 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 		*(unsigned short *)(pongpackage+4) = myID; //sourceID
 		*(unsigned short *)(pongpackage+6) = *(unsigned short*)packet[4]; //sourceID
 		*(int *)(pongpackage+8) = *(int*)packet[8];//time stamp
-		send(port,pongpackage,size);
+		sys->send(port,pongpackage,size);
 	}else if(thetype == PONG){
 		int startsendtime = *(int*)packet[8];
 		int currentTime = sys-> time();
