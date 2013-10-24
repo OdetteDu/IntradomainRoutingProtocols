@@ -101,7 +101,16 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 		*(char *)(pongpackage+8) = packet[8];//time stamp
 		send(port,pongpackage,size);
 	}else if(thetype == PONG){
-		
+		int startsendtime = *(unsigned short int*)packet[8];
+		int currentTime = sys-> time();
+		int duration = currentTime - startsendtime;
+		int count = numOfPorts;
+		while(count > 0){
+			count --;
+			if(ports[]){
+				
+			}
+		}
 	}
 }
 
@@ -135,7 +144,7 @@ bool RoutingProtocolImpl::handlePP() {
 	
 	//------------------make ping and pong package-----------------------------
 	ePacketType pingtype = PING;
-	int payloadsize = 4;
+	int = 4;
 	//------------------end make package----------------------------------------
 	
 	
