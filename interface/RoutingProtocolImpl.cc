@@ -118,8 +118,24 @@ bool RoutingProtocolImpl::handleExp() {
 bool RoutingProtocolImpl::handlePP() {
 	printf("Node %d: pingpong message! time: %d\n\n", myID, sys->time());
 	/* TODO: for Kai Wu*/
-	int count = 
-	while ()
+	
+	//------------------make ping and pong package-----------------------------
+	char* pingpackage = malloc(4*3*sizeof(char*));
+	char* pingstring = "PING";//four bytes?
+	char* pongstring = "PONG";
+	int payloadsize = 4;
+	*(char *)(pingpackage) = pingstring;
+	*(char *)(pingpackage+2) = payloadsize;
+	*(char *)(pingpackage+4) = myID;
+	//------------------end make package----------------------------------------
+	
+	
+	int count = numOfPorts;
+	while (count > 0){
+		//ports[count] do something
+		
+		count --;
+	}
 	return true;
 }
 
