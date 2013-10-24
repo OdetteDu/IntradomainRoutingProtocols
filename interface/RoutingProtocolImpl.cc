@@ -91,16 +91,16 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 	// TODO: for EVERYONE!
 	ePacketType thetype = *(char *)packet;
 	
-	if(){
+	if(thetype == PING){
 		char* pongpackage = malloc(4*3*sizeof(char));
-		char* pongstring = "PONG";
-		*(char *)(pongpackage) = pongstring;  //packet type
+		ePacketType pongtype = PONG;
+		*(char *)(pongpackage) = pongtype;  //packet type
 		*(char *)(pongpackage+2) = size; //size
 		*(char *)(pongpackage+4) = myID; //sourceID
 		*(char *)(pongpackage+6) = packet[4]; //sourceID
 		*(char *)(pongpackage+8) = packet[8];//time stamp
 		send(port,pongpackage,size);
-	}else if(strcmp(packageType, "PONG") == 0){
+	}else if(thetype == PONG){
 		//do nothing. Something will be done after call this method.
 	}
 }
@@ -134,8 +134,7 @@ bool RoutingProtocolImpl::handlePP() {
 	/* TODO: for Kai Wu*/
 	
 	//------------------make ping and pong package-----------------------------
-	char* pingstring = "PING";//four bytes?
-	char* pongstring = "PONG";
+	ePacketType pingtype = PING;
 	int payloadsize = 4;
 	//------------------end make package----------------------------------------
 	
@@ -145,14 +144,14 @@ bool RoutingProtocolImpl::handlePP() {
 	while (count > 0){
 		//ports[count] do something
 		//----------------------------making ping package---------------
-		char* pingpackage = malloc(4*3*sizeof(char));
-		*(char *)(pingpackage) = pingstring;  //packet type
+		char* pingpackage = malloc(12);
+		*(char *)(pingpackage) = pingtype;  //packet type
 		*(char *)(pingpackage+2) = payloadsize; //size
 		*(char *)(pingpackage+4) = myID; //sourceID
 		*(char *)(pingpackage+8) = sys->time();//time stamp
 		//----------------------------end making------------------------
 		sys->send(ports[count],pingpackage,12);
-		char * recievePackage = malloc(4*3*sizeof(char));
+		char * recievePackage = malloc(12);
 		recv(ports[count],recievePackage,12);
 		int currentTime = sys-> time();
 		int duration = currentTime - recievePackage[8];
