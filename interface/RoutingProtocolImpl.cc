@@ -101,7 +101,7 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 		*(char *)(pongpackage+8) = packet[8];//time stamp
 		send(port,pongpackage,size);
 	}else if(thetype == PONG){
-		//do nothing. Something will be done after call this method.
+		
 	}
 }
 
