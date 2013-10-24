@@ -152,7 +152,7 @@ bool RoutingProtocolImpl::handlePP() {
 		*(char *)(pingpackage+4) = myID; //sourceID
 		*(char *)(pingpackage+8) = sys->time();//time stamp
 		//----------------------------end making------------------------
-		send(ports[count],pingpackage,12);
+		sys->send(ports[count],pingpackage,12);
 		char * recievePackage = malloc(4*3*sizeof(char));
 		recv(ports[count],recievePackage,12);
 		int currentTime = sys-> time();
