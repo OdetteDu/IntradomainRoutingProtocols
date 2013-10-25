@@ -20,4 +20,14 @@ typedef struct _Forward {
 	struct _Forward *next;
 } Forward;
 
+struct _DVCell;
+
+typedef struct _DVCell {
+	unsigned short destID;
+	unsigned short nextID;
+	unsigned int nextPort;
+	bool isAlive;
+	struct _DVCell *next;
+} DVCell;
+
 #endif

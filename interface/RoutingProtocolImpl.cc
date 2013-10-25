@@ -11,7 +11,7 @@ RoutingProtocolImpl::RoutingProtocolImpl(Node *n) : RoutingProtocol(n) {
 	alarm_exp[0] = 'e';
 	alarm_pp[0] = 'p';
 	alarm_update[0] = 'u';
-	
+
 	// port list
 	ports = NULL;
 
@@ -48,7 +48,7 @@ void RoutingProtocolImpl::init(unsigned short num_ports, unsigned short router_i
 
 	// initialize all the ports and forwarding table
 	initPorts(numOfPorts);
-	
+
 	// set the first expiration checking alarm
 	setExpAlarm();
 
@@ -64,24 +64,24 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 	/* EDIT: by Yanfei Wu */
 	if (sys->time() <= endTime) {	// this restriction is merely for testing
 
-	char type = *(char*)data;
-	switch (type) {
-	case 'e':
-		handleExp();
-		setExpAlarm();		// finish expiration work, reset the alarm
-		break;
-	case 'p':
-		handlePP();
-		setPPAlarm();		// finish sending ping-pong message, reset the alarm
-		break;
-	case 'u':
-		handleUpdate();
-		setUpdateAlarm();	// finish update protocol tables, reset the alarm
-		break;
-	default:
-		printf("Node %d:\n\t***Error*** Unknown alarm occurs\n\ttime: %d\n\n", myID, sys->time());
-		break;
-	} // end switch (type)
+		char type = *(char*)data;
+		switch (type) {
+		case 'e':
+			handleExp();
+			setExpAlarm();		// finish expiration work, reset the alarm
+			break;
+		case 'p':
+			handlePP();
+			setPPAlarm();		// finish sending ping-pong message, reset the alarm
+			break;
+		case 'u':
+			handleUpdate();
+			setUpdateAlarm();	// finish update protocol tables, reset the alarm
+			break;
+		default:
+			printf("Node %d:\n\t***Error*** Unknown alarm occurs\n\ttime: %d\n\n", myID, sys->time());
+			break;
+		} // end switch (type)
 
 	} // end: if (sys->time() < endTime)
 	/* END EDIT: Yanfei Wu */
@@ -89,9 +89,49 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
 	// TODO: for EVERYONE!
+	char type = *(char*)packet;
+	switch (type)
+	{
+	case DATA:
+		break;
+	case PING:
+		break;
+	case PONG:
+		break;
+	case DV:
+		recvDV(port, packet, size);
+		break;
+	case LS:
+		break;
+	default:
+		printf("Port %d:\n\t***Error*** Unknown packet occurs\n\ttime: %d\n\n", port, sys->time());
+		break;
+	}
 }
 
-	/*EDIT: by Yanfei Wu */
+/*EDIT: by Yanfei Wu */
+void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned short size)
+{
+	char *pck = (char *)packet;
+	char type = *pck;
+	short packetSize = *(short*)(pck + 2);
+	short sourceId = *(short*)(pck + 4);
+	short destinationId = *(short*)(pck + 6);
+	pck = pck+8;
+
+	for(int i=0; i<packetSize/4-2; i++)
+	{
+		short nodeId = *(short*)(pck + i*4);
+		short cost = *(short*)(pck + 2);
+		updateDVTable(nodeId, cost);
+	}
+	DVUpdate();
+}
+
+void RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short cost)
+{
+
+}
 
 /* set the alarm for expiration checking */
 void RoutingProtocolImpl::setExpAlarm() {
@@ -130,7 +170,7 @@ bool RoutingProtocolImpl::handleUpdate() {
 		return LSUpdate();
 	else
 		printf("Node %d:\n\t***Error*** Unknown protocl when handling update\n\ttime: %d\n\n",
-			myID, sys->time());
+				myID, sys->time());
 
 	return false;
 }
@@ -199,7 +239,7 @@ void RoutingProtocolImpl::freeForward(Forward* toFree) {
 	toFree = NULL;
 }
 
-	/* END EDIT: Yanfei Wu */
+/* END EDIT: Yanfei Wu */
 
 /* TODO: for Yang Du*/
 bool RoutingProtocolImpl::DVUpdate() {
