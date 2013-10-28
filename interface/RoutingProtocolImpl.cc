@@ -48,6 +48,7 @@ void RoutingProtocolImpl::init(unsigned short num_ports, unsigned short router_i
 
 	// initialize all the ports and forwarding table
 	initPorts(numOfPorts);
+	printf("\t\t number of ports: %d\n", numOfPorts);
 	
 	// set the first expiration checking alarm
 	setExpAlarm();
@@ -89,33 +90,37 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
 	// TODO: for EVERYONE!
-	ePacketType thetype = *(char *)packet;
+	char *receive = (char *)packet;
+	
+	/* Editted by Kai */
+	ePacketType thetype = (ePacketType)(*(char *)packet);
 	
 	if(thetype == PING){
-		char* pongpackage = malloc(12);
+		char *pongpackage = (char *)malloc(12);
 		ePacketType pongtype = PONG;
 		*(char *)(pongpackage) = pongtype;  //packet type
 		*(unsigned short *)(pongpackage+2) = size; //size
 		*(unsigned short *)(pongpackage+4) = myID; //sourceID
-		*(unsigned short *)(pongpackage+6) = *(unsigned short*)packet[4]; //sourceID
-		*(int *)(pongpackage+8) = *(int*)packet[8];//time stamp
+		*(unsigned short *)(pongpackage+6) = *(unsigned short*)(receive + 4); //sourceID
+		*(int *)(pongpackage+8) = *(int*)(receive + 8);//time stamp
+		printf("\tReceive PING: from port %d, source: %d, time stamp: %d\n", port, 
+				*(unsigned short*)(receive + 4), *(int *)(receive + 8));
 		sys->send(port,pongpackage,size);
 	}else if(thetype == PONG){
-		int startsendtime = *(int*)packet[8];
-		int currentTime = sys-> time();
+		int currentTime = sys->time();
+		int startsendtime = *(int*)(receive + 8);
 		int duration = currentTime - startsendtime;
-		int count = numOfPorts;
-		while(count > 0){
-			count --;
-			if(ports[count] -> number == port){
-				ports[count] -> linkto = *(unsigned short*)packet[4];
-				ports[count] -> cost = duration;
-				ports[count] -> update = currentTime;
-				ports[count] -> isAlive = true;
-				break;
-			}
-		}
+		
+		ports[port].linkTo = *(unsigned short*)(receive + 4);
+		ports[port].cost = duration;
+		ports[port].update = currentTime;
+		ports[port].isAlive = true;
+		printf("\tReceive PONG: from port %d, source: %d, duration: %d, time: %d\n",
+				port, *(unsigned short*)(receive +4), duration, currentTime);
 	}
+	/* End Edit: Kai */
+	packet = NULL;
+	delete receive;
 }
 
 	/*EDIT: by Yanfei Wu */
@@ -146,7 +151,7 @@ bool RoutingProtocolImpl::handlePP() {
 	printf("Node %d: pingpong message! time: %d\n\n", myID, sys->time());
 	/* TODO: for Kai Wu*/
 	
-	//------------------make ping and pong package-----------------------------
+	//------------------make ping package-----------------------------
 	ePacketType pingtype = PING;
 	int totalsize = 12;
 	//------------------end make package----------------------------------------
@@ -155,25 +160,16 @@ bool RoutingProtocolImpl::handlePP() {
 	int count = numOfPorts;
 	while (count > 0){
 		//ports[count] do something
-		count --;
+		count--;
 		//----------------------------making ping package---------------
-		char* pingpackage = malloc(12);
-		*(char *)(pingpackage) = pingtype;  //packet type
+		char *pingpackage = (char*)malloc(12);			// TODO: deal with the memory leak here
+		*pingpackage = pingtype;  //packet type
 		*(unsigned short *)(pingpackage+2) = totalsize; //size
 		*(unsigned short *)(pingpackage+4) = myID; //sourceID
-		*(int *)(pingpackage+8) = sys->time();//time stamp
+		*(int *)(pingpackage+8) = sys->time(); //time stamp
 		//----------------------------end making------------------------
-		sys->send(ports[count]->number,pingpackage,12);
-		//char * recievePackage = malloc(12);
-	//	recv(ports[count],recievePackage,12);
-	/*	int currentTime = sys-> time();
-		int duration = currentTime - recievePackage[8];
-		if(duration >= 15000 || duration <= 0){//timeout -> may need to figure out when duration is <= 0
-			neighborStatus[ports[count]] = -1;//-1 for timeout
-		}else{
-			neighborStatus[ports[count]] = duration; //calculate the duration
-		}*/
-		
+		sys->send(count, pingpackage, 12);
+		printf("\tSend PING to port: %d, time stamp: %d\n", count, sys->time());
 	}
 	return true;
 }
