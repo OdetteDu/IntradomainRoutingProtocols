@@ -23,8 +23,8 @@ typedef struct _Forward {
 struct _DVCell;
 
 typedef struct _DVCell {
+	unsigned short id;
 	unsigned short destID;
-	unsigned short nextHopID;
 	unsigned int cost;
 	
 } DVCell;

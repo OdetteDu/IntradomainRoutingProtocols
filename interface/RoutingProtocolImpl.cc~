@@ -113,8 +113,10 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned short size)
 {
 	char *pck = (char *)packet;
+	char type = *pck;
 	short packetSize = *(short*)(pck + 2);
 	short sourceId = *(short*)(pck + 4);
+	short destinationId = *(short*)(pck + 6);
 	pck = pck+8;
 
 	for(int i=0; i<packetSize/4-2; i++)
@@ -123,59 +125,12 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 		short cost = *(short*)(pck + 2);
 		updateDVTable(nodeId, cost, sourceId);
 	}
-
-	sendDVUpdateMessage();
-
+	DVUpdate();
 }
 
 void RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId)
 {
-	int oldCost = DVMap[nodeId].cost;
-	int newCost = cost + DVMap[sourceId].cost;
 
-	if(oldCost>newCost)
-	{
-		//update the table
-		DVCell newCell;
-		newCell.destID = nodeId;
-		newCell.nextHopID = sourceId;
-		newCell.cost = newCost;
-		DVMap[nodeId] = newCell;
-	}
-}
-
-void RoutingProtocolImpl::sendDVUpdateMessage()
-{
-	for(int i=0; i<numOfPorts; i++)
-	{
-		if(ports[i].isAlive)
-		{
-			char type = DV;
-			short size = 8 + DVMap.size()*4;
-			short sourceId = myID;
-			short destinationId = ports[i].linkTo; 
-	
-			//put the message in a packet
-			char * packet = (char *)malloc(sizeof(char) * size);
-			*packet = type;
-			*(short *)(packet+2) = size;
-			*(short *)(packet+4) = sourceId;
-			*(short *)(packet+6) = destinationId;
-
-			int index = 8;
-			for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
-			{
-				DVCell newCell = it -> second;
-				short nodeId = newCell.destID;
-				short cost = newCell.cost;
-				*(short *)(packet+index) = nodeId;
-				*(short *)(packet+index+2) = cost;
-				index += 4;
-			}
-
-			sys -> send(ports[i].number, packet, size);
-		}
-	}
 }
 
 /* set the alarm for expiration checking */
@@ -203,27 +158,6 @@ bool RoutingProtocolImpl::handleExp() {
 bool RoutingProtocolImpl::handlePP() {
 	printf("Node %d: pingpong message! time: %d\n\n", myID, sys->time());
 	/* TODO: for Kai Wu*/
-	
-	//------------------make ping package-----------------------------
-	ePacketType pingtype = PING;
-	int totalsize = 12;
-	//------------------end make package----------------------------------------
-	
-	
-	int count = numOfPorts;
-	while (count > 0){
-		//ports[count] do something
-		count--;
-		//----------------------------making ping package---------------
-		char *pingpackage = (char*)malloc(12);			// TODO: deal with the memory leak here
-		*pingpackage = pingtype;  //packet type
-		*(unsigned short *)(pingpackage+2) = totalsize; //size
-		*(unsigned short *)(pingpackage+4) = myID; //sourceID
-		*(int *)(pingpackage+8) = sys->time(); //time stamp
-		//----------------------------end making------------------------
-		sys->send(count, pingpackage, 12);
-		printf("\tSend PING to port: %d, time stamp: %d\n", count, sys->time());
-	}
 	return true;
 }
 
@@ -306,12 +240,9 @@ void RoutingProtocolImpl::freeForward(Forward* toFree) {
 }
 
 /* END EDIT: Yanfei Wu */
+
 /* TODO: for Yang Du*/
 bool RoutingProtocolImpl::DVUpdate() {
-	//for all the ports, 
-	for(int i=0; i<numOfPorts; i++)
-	{
-	}
 	return true;
 }
 
