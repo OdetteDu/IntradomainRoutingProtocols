@@ -61,7 +61,7 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	// forwarding table informations
 	Forward *forwards;
 
-	map<short,DVCell> DVMap;
+	map<short,DVCell> mymap;
 
 	// end time for the system
 	// just for testing, will be removed

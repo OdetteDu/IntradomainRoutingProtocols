@@ -125,37 +125,12 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 		short cost = *(short*)(pck + 2);
 		updateDVTable(nodeId, cost, sourceId);
 	}
-
+	DVUpdate();
 }
 
 void RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId)
 {
-	int oldCost = DVMap[nodeId].cost;
-	int newCost = cost + DVMap[sourceId].cost;
 
-	if(oldCost>newCost)
-	{
-		//update the table
-		DVCell newCell;
-		newCell.destID = nodeId;
-		newCell.nextHopID = sourceId;
-		newCell.cost = newCost;
-		DVMap[nodeId] = newCell;
-	}
-}
-
-void RoutingProtocolImpl::sendDVUpdateMessage(DVCell newCell)
-{
-	char type = DV;
-	short size = 12;
-	short sourceId = myID;
-	short destinationId; //everyone connected with me
-	short nodeId = newCell.destID;
-	short cost = newCell.cost;
-	
-	byte[] message = new byte[size];
-	message[0] = type;
-	//put the message in a packet
 }
 
 /* set the alarm for expiration checking */
@@ -265,9 +240,9 @@ void RoutingProtocolImpl::freeForward(Forward* toFree) {
 }
 
 /* END EDIT: Yanfei Wu */
+
 /* TODO: for Yang Du*/
 bool RoutingProtocolImpl::DVUpdate() {
-	//for all the ports, 
 	return true;
 }
 
