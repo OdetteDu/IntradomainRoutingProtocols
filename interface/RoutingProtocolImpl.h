@@ -94,6 +94,8 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void updateForward(unsigned short destID, unsigned short nextID, unsigned int nextPort);
 	// disable a link in entry
 	void disableForward(unsigned int destID);
+	// forward DATA packet
+	void forwardData(void* packet, unsigned short destID, unsigned short size);
 	// free forwarding table
 	void freeForward(Forward* toFree);
 

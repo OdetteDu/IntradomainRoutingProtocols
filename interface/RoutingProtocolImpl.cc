@@ -91,36 +91,70 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
 	// TODO: for EVERYONE!
 	char *receive = (char *)packet;
+	ePacketType type = (ePacketType)(*(char *)packet);
+	unsigned short srcID = *(unsigned short*)(receive + 4);
+	unsigned short destID = *(unsigned short*)(receive + 6);
+	int i;
+
+	/* EDIT : by Yanfei */
+	if (type == DATA) { // forward DATA packet
+		if (port == SPECIAL_PORT) { // the packet is generated locally
+			printf("\tPacket generated locally, destination: %d.\n", destID);
+			forwardData(packet, destID, size);
+		}
+		else { // the packet is from other ports
+			if (myID == destID) { // reach destination
+				// print data content
+				printf("\tReceive data from %d, payload:\n\t", srcID);
+				char *payload = receive + 8;
+				for (i = 0; i < size - 8; i++) {
+					printf("%c ", *payload);
+					payload++;
+				}
+				printf("\n");
+				// free the memory
+				payload = NULL;
+				packet = NULL;
+				delete receive;
+			}
+			else { // for somebody else
+				forwardData(packet, destID, size);
+			}
+		}
+	}
+	/* END EDIT: Yanfei */
 	
 	/* Editted by Kai */
-	ePacketType thetype = (ePacketType)(*(char *)packet);
-	
-	if(thetype == PING){
-		char *pongpackage = (char *)malloc(12);
+	if(type == PING){
+		char *pongpackage = (char *)malloc(12 * sizeof(char));
 		ePacketType pongtype = PONG;
-		*(char *)(pongpackage) = pongtype;  //packet type
+		*pongpackage = pongtype;  //packet type
 		*(unsigned short *)(pongpackage+2) = size; //size
-		*(unsigned short *)(pongpackage+4) = myID; //sourceID
-		*(unsigned short *)(pongpackage+6) = *(unsigned short*)(receive + 4); //sourceID
-		*(int *)(pongpackage+8) = *(int*)(receive + 8);//time stamp
+		*(unsigned short *)(pongpackage+4) = myID;	//sourceID is my ID
+		*(unsigned short *)(pongpackage+6) = srcID;	//destinationID is the sender's ID
+		*(int *)(pongpackage+8) = *(int*)(receive + 8);	//time stamp
 		printf("\tReceive PING: from port %d, source: %d, time stamp: %d\n", port, 
-				*(unsigned short*)(receive + 4), *(int *)(receive + 8));
+				srcID, *(int *)(receive + 8));
 		sys->send(port,pongpackage,size);
-	}else if(thetype == PONG){
+		// free memory
+		packet = NULL;
+		delete receive;
+	} else if (type == PONG){
 		int currentTime = sys->time();
 		int startsendtime = *(int*)(receive + 8);
 		int duration = currentTime - startsendtime;
-		
-		ports[port].linkTo = *(unsigned short*)(receive + 4);
+		// update port status
+		ports[port].linkTo = srcID;
 		ports[port].cost = duration;
 		ports[port].update = currentTime;
 		ports[port].isAlive = true;
 		printf("\tReceive PONG: from port %d, source: %d, duration: %d, time: %d\n",
-				port, *(unsigned short*)(receive +4), duration, currentTime);
+				port, srcID, duration, currentTime);
+		// free memory
+		packet = NULL;
+		delete receive;
 	}
 	/* End Edit: Kai */
-	packet = NULL;
-	delete receive;
 }
 
 	/*EDIT: by Yanfei Wu */
@@ -162,11 +196,11 @@ bool RoutingProtocolImpl::handlePP() {
 		//ports[count] do something
 		count--;
 		//----------------------------making ping package---------------
-		char *pingpackage = (char*)malloc(12);			// TODO: deal with the memory leak here
-		*pingpackage = pingtype;  //packet type
-		*(unsigned short *)(pingpackage+2) = totalsize; //size
-		*(unsigned short *)(pingpackage+4) = myID; //sourceID
-		*(int *)(pingpackage+8) = sys->time(); //time stamp
+		char *pingpackage = (char*)malloc(12 * sizeof(char));		// TODO: deal with the memory leak here
+		*pingpackage = pingtype;					//packet type
+		*(unsigned short *)(pingpackage+2) = totalsize; 		//size
+		*(unsigned short *)(pingpackage+4) = myID; 			//sourceID
+		*(int *)(pingpackage+8) = sys->time(); 				//time stamp
 		//----------------------------end making------------------------
 		sys->send(count, pingpackage, 12);
 		printf("\tSend PING to port: %d, time stamp: %d\n", count, sys->time());
@@ -239,6 +273,19 @@ void RoutingProtocolImpl::disableForward(unsigned int destID) {
 	Forward* fw = findForward(destID);
 	if (fw != NULL)
 		fw->isAlive = false;
+}
+
+/* forward DATA packet to a specific destination ID */
+void RoutingProtocolImpl::forwardData(void* packet, unsigned short destID, unsigned short size) {
+	Forward *destEntry = findForward(destID);
+	if (destEntry == NULL) { // not reachable, free the packet memory
+		printf("\tCannot forward the packet (not reachable).\n");
+		delete (char*)packet;
+	}
+	else { // reachable, so forward it
+		printf("\tForward the packet through port %d.\n", destEntry->nextPort);
+		sys->send(destEntry->nextPort, packet, size);
+	}
 }
 
 /* a recursive function to free memory of forwarding table */
