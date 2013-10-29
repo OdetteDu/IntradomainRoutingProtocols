@@ -310,8 +310,9 @@ void RoutingProtocolImpl::freeForward(Forward* toFree) {
 bool RoutingProtocolImpl::DVUpdate() {
 	//for all the ports, 
 	for(int i=0; i<numOfPorts; i++)
-	{
+	{	
 	}
+
 	return true;
 }
 
