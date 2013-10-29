@@ -150,7 +150,6 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 	char *pck = (char *)packet;
 	short packetSize = *(short*)(pck + 2);
 	short sourceId = *(short*)(pck + 4);
-	pck = pck+8;
 
 	if(DVMap.find(sourceId)==DVMap.end())
 	{
@@ -180,8 +179,8 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 
 	for(int i=0; i<packetSize/4-2; i++)
 	{
-		short nodeId = *(short*)(pck + i*4);
-		short cost = *(short*)(pck + 2 + i*4);
+		short nodeId = *(short*)(pck + 8 + i*4);
+		short cost = *(short*)(pck + 8 + 2 + i*4);
 		updateDVTable(nodeId, cost, sourceId);
 	}
 
@@ -229,7 +228,7 @@ void RoutingProtocolImpl::recvDATA(unsigned short port, void *packet, unsigned s
 void RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId)
 {
 	int newCost = cost + DVMap[sourceId].cost;
-	if(DVMap.find(nodeId)==DVMap.end() && DVMap[nodeId].cost>newCost)
+	if(DVMap.find(nodeId)==DVMap.end() || DVMap[nodeId].cost>newCost)
 	{
 		//update the table
 		DVCell newCell;
