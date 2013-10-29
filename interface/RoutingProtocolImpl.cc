@@ -152,15 +152,43 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 	short sourceId = *(short*)(pck + 4);
 	pck = pck+8;
 
+	if(DVMap.find(sourceId)==DVMap.end())
+	{
+		int portNumber = -1;
+		for(int j=0; j<numOfPorts; j++)
+		{
+			  if(ports[j].linkTo == sourceId)
+			  {
+				  portNumber = j;
+				  break;
+			  }
+		 }
+
+		if (portNumber != -1)
+		{
+			  
+				DVMap[sourceId].destID = sourceId;
+				DVMap[sourceId].cost = ports[portNumber].cost;
+				DVMap[sourceId].nextHopID = myID;
+		}
+		else
+		{
+			printf("The sourceId is neither in DVMap nor in Ports");
+			  return;
+		}
+	}
+
 	for(int i=0; i<packetSize/4-2; i++)
 	{
 		short nodeId = *(short*)(pck + i*4);
-		short cost = *(short*)(pck + 2);
+		short cost = *(short*)(pck + 2 + i*4);
 		updateDVTable(nodeId, cost, sourceId);
 	}
 
 	sendDVUpdateMessage();
-
+	
+	packet = NULL;
+	delete(pck);
 }
 
 /* deal with the DATA packet */
@@ -199,10 +227,8 @@ void RoutingProtocolImpl::recvDATA(unsigned short port, void *packet, unsigned s
 	
 void RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId)
 {
-	int oldCost = DVMap[nodeId].cost;
 	int newCost = cost + DVMap[sourceId].cost;
-
-	if(oldCost>newCost)
+	if(DVMap.find(nodeId)==DVMap.end() && DVMap[nodeId].cost>newCost)
 	{
 		//update the table
 		DVCell newCell;
@@ -404,24 +430,26 @@ bool RoutingProtocolImpl::DVUpdate() {
 		if(port.isAlive)
 		{
 			//did the cost change?
-			DVCell dv = DVMap[ports[i].linkTo];
-			if(dv.nextHopID != myID)
+			DVCell *dv = &DVMap[ports[i].linkTo];
+
+			//save the old cost
+			int oldCost = dv->cost;
+
+			if(dv->nextHopID != myID)
 			{
-				  if(dv.cost > ports[i].cost)
+				  if(dv->cost > ports[i].cost)
 				  {
 					    //update to use the direct link
-						dv.cost = ports[i].cost;
-						dv.nextHopID = myID;
+						dv->cost = ports[i].cost;
+						dv->nextHopID = myID;
 				  }
 				  else
 				  {
 					    continue;
 				  }
 			}
-			//save the old cost
-			int oldCost = dv.cost;
 			//update the direct node to the new cost
-			dv.cost = ports[i].cost;
+			dv->cost = ports[i].cost;
 			//find all the nextHop with the direct Node
 			for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
 			{
@@ -445,16 +473,16 @@ bool RoutingProtocolImpl::DVUpdate() {
 		{
 			for(map<short, DVCell>::iterator iter = DVMap.begin(); iter!=DVMap.end(); ++iter)
 			{
-				DVCell c = iter -> second;
-				if(c.nextHopID == myID && directConnection.find(c.destID)!=directConnection.end())
+				DVCell dvc = iter -> second;
+				if(dvc.nextHopID == myID && directConnection.find(dvc.destID)!=directConnection.end())
 				{
 					//remove all the disconnected Node
-					DVMap.erase(ports[i].linkTo);
+					DVMap.erase(dvc.destID);
 					//remove all the entry with nextHopID==disconnected node
 					for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
 					{
 						DVCell c = it->second;
-						if(c.nextHopID == ports[i].linkTo)
+						if(c.nextHopID == dvc.destID)
 						{
 							DVMap.erase(c.destID);
 						}
