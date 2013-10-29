@@ -405,6 +405,19 @@ bool RoutingProtocolImpl::DVUpdate() {
 		{
 			//did the cost change?
 			DVCell dv = DVMap[ports[i].linkTo];
+			if(dv.nextHopID != myID)
+			{
+				  if(dv.cost > ports[i].cost)
+				  {
+					    //update to use the direct link
+						dv.cost = ports[i].cost;
+						dv.nextHopID = myID;
+				  }
+				  else
+				  {
+					    continue;
+				  }
+			}
 			//save the old cost
 			int oldCost = dv.cost;
 			//update the direct node to the new cost
@@ -430,15 +443,22 @@ bool RoutingProtocolImpl::DVUpdate() {
 		}
 		else
 		{
-			//remove all the disconnected Node
-			DVMap.erase(ports[i].linkTo);
-			//remove all the entry with nextHopID==disconnected node
-			for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
+			for(map<short, DVCell>::iterator iter = DVMap.begin(); iter!=DVMap.end(); ++iter)
 			{
-				DVCell c = it->second;
-				if(c.nextHopID == ports[i].linkTo)
+				DVCell c = iter -> second;
+				if(c.nextHopID == myID && directConnection.find(c.destID)!=directConnection.end())
 				{
-					DVMap.erase(c.destID);
+					//remove all the disconnected Node
+					DVMap.erase(ports[i].linkTo);
+					//remove all the entry with nextHopID==disconnected node
+					for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
+					{
+						DVCell c = it->second;
+						if(c.nextHopID == ports[i].linkTo)
+						{
+							DVMap.erase(c.destID);
+						}
+					}
 				}
 			}
 		}
