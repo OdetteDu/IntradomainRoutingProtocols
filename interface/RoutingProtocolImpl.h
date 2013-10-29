@@ -61,6 +61,8 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	// forwarding table informations
 	Forward *forwards;
 
+	map<short,DVCell> DVMap;
+
 	// end time for the system
 	// just for testing, will be removed
 	unsigned int endTime;
@@ -100,6 +102,10 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void freeForward(Forward* toFree);
 
 	/* END EDIT: Yanfei Wu */
+
+	void recvDV(unsigned short port, void *packet, unsigned short size);
+	void updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId);
+	void sendDVUpdateMessage();
 };
 
 #endif

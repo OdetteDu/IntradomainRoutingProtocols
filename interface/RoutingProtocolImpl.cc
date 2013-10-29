@@ -11,7 +11,7 @@ RoutingProtocolImpl::RoutingProtocolImpl(Node *n) : RoutingProtocol(n) {
 	alarm_exp[0] = 'e';
 	alarm_pp[0] = 'p';
 	alarm_update[0] = 'u';
-	
+
 	// port list
 	ports = NULL;
 
@@ -48,8 +48,7 @@ void RoutingProtocolImpl::init(unsigned short num_ports, unsigned short router_i
 
 	// initialize all the ports and forwarding table
 	initPorts(numOfPorts);
-	printf("\t\t number of ports: %d\n", numOfPorts);
-	
+
 	// set the first expiration checking alarm
 	setExpAlarm();
 
@@ -65,24 +64,24 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 	/* EDIT: by Yanfei Wu */
 	if (sys->time() <= endTime) {	// this restriction is merely for testing
 
-	char type = *(char*)data;
-	switch (type) {
-	case 'e':
-		handleExp();
-		setExpAlarm();		// finish expiration work, reset the alarm
-		break;
-	case 'p':
-		handlePP();
-		setPPAlarm();		// finish sending ping-pong message, reset the alarm
-		break;
-	case 'u':
-		handleUpdate();
-		setUpdateAlarm();	// finish update protocol tables, reset the alarm
-		break;
-	default:
-		printf("Node %d:\n\t***Error*** Unknown alarm occurs\n\ttime: %d\n\n", myID, sys->time());
-		break;
-	} // end switch (type)
+		char type = *(char*)data;
+		switch (type) {
+		case 'e':
+			handleExp();
+			setExpAlarm();		// finish expiration work, reset the alarm
+			break;
+		case 'p':
+			handlePP();
+			setPPAlarm();		// finish sending ping-pong message, reset the alarm
+			break;
+		case 'u':
+			handleUpdate();
+			setUpdateAlarm();	// finish update protocol tables, reset the alarm
+			break;
+		default:
+			printf("Node %d:\n\t***Error*** Unknown alarm occurs\n\ttime: %d\n\n", myID, sys->time());
+			break;
+		} // end switch (type)
 
 	} // end: if (sys->time() < endTime)
 	/* END EDIT: Yanfei Wu */
@@ -90,13 +89,88 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
 	// TODO: for EVERYONE!
+	char type = *(char*)packet;
+	switch (type)
+	{
+	case DATA:
+		recvDATA(port, packet, size);
+		break;
+	case PING:
+	case PONG:
+		recvPP(port, packet, size);
+		break;
+	case DV:
+		recvDV(port, packet, size);
+		break;
+	case LS:
+		break;
+	default:
+		printf("Port %d:\n\t***Error*** Unknown packet occurs\n\ttime: %d\n\n", port, sys->time());
+		break;
+	}
+}
+
+/* Deal with PING or PONG packet */
+void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned short size) {
+	char *receive = (char *)packet;
+	ePacketType type = (ePacketType)(*(char *)packet);
+	unsigned short srcID = *(unsigned short*)(receive + 4);
+
+	if (type == PING) {
+		char *pongpackage = (char *)malloc(12 * sizeof(char));
+		ePacketType pongtype = PONG;
+		*pongpackage = pongtype;			//packet type
+		*(unsigned short *)(pongpackage+2) = 12;	// size
+		*(unsigned short *)(pongpackage+4) = myID;	// sourceID is my ID
+		*(unsigned short *)(pongpackage+6) = srcID;	// destinationID is the sender's ID
+		*(int *)(pongpackage+8) = *(int*)(receive + 8);	// time stamp
+		printf("\tReceive PING: from port %d, source: %d, time stamp: %d\n", port, 
+			srcID, *(int *)(receive + 8));
+		sys->send(port,pongpackage,size);
+	} else if (type == PONG) {
+		int currentTime = sys->time();
+		int startsendtime = *(int*)(receive + 8);
+		int duration = currentTime - startsendtime;
+		// update port status
+		ports[port].linkTo = srcID;
+		ports[port].cost = duration;
+		ports[port].update = currentTime;
+		ports[port].isAlive = true;
+		printf("\tReceive PONG: from port %d, source: %d, duration: %d, time: %d\n",
+			port, srcID, duration, currentTime);
+	}
+	
+	// free memory
+	packet = NULL;
+	delete receive;
+}
+
+void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned short size)
+{
+	char *pck = (char *)packet;
+	short packetSize = *(short*)(pck + 2);
+	short sourceId = *(short*)(pck + 4);
+	pck = pck+8;
+
+	for(int i=0; i<packetSize/4-2; i++)
+	{
+		short nodeId = *(short*)(pck + i*4);
+		short cost = *(short*)(pck + 2);
+		updateDVTable(nodeId, cost, sourceId);
+	}
+
+	sendDVUpdateMessage();
+
+}
+
+/* deal with the DATA packet */
+void RoutingProtocolImpl::recvDATA(unsigned short port, void *packet, unsigned short size) {
 	char *receive = (char *)packet;
 	ePacketType type = (ePacketType)(*(char *)packet);
 	unsigned short srcID = *(unsigned short*)(receive + 4);
 	unsigned short destID = *(unsigned short*)(receive + 6);
 	int i;
 
-	/* EDIT : by Yanfei */
 	if (type == DATA) { // forward DATA packet
 		if (port == SPECIAL_PORT) { // the packet is generated locally
 			printf("\tPacket generated locally, destination: %d.\n", destID);
@@ -117,47 +191,61 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 				packet = NULL;
 				delete receive;
 			}
-			else { // for somebody else
+			else	// for somebody else
 				forwardData(packet, destID, size);
-			}
 		}
 	}
-	/* END EDIT: Yanfei */
+}
 	
-	/* Editted by Kai */
-	if(type == PING){
-		char *pongpackage = (char *)malloc(12 * sizeof(char));
-		ePacketType pongtype = PONG;
-		*pongpackage = pongtype;  //packet type
-		*(unsigned short *)(pongpackage+2) = size; //size
-		*(unsigned short *)(pongpackage+4) = myID;	//sourceID is my ID
-		*(unsigned short *)(pongpackage+6) = srcID;	//destinationID is the sender's ID
-		*(int *)(pongpackage+8) = *(int*)(receive + 8);	//time stamp
-		printf("\tReceive PING: from port %d, source: %d, time stamp: %d\n", port, 
-				srcID, *(int *)(receive + 8));
-		sys->send(port,pongpackage,size);
-		// free memory
-		packet = NULL;
-		delete receive;
-	} else if (type == PONG){
-		int currentTime = sys->time();
-		int startsendtime = *(int*)(receive + 8);
-		int duration = currentTime - startsendtime;
-		// update port status
-		ports[port].linkTo = srcID;
-		ports[port].cost = duration;
-		ports[port].update = currentTime;
-		ports[port].isAlive = true;
-		printf("\tReceive PONG: from port %d, source: %d, duration: %d, time: %d\n",
-				port, srcID, duration, currentTime);
-		// free memory
-		packet = NULL;
-		delete receive;
+void RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId)
+{
+	int oldCost = DVMap[nodeId].cost;
+	int newCost = cost + DVMap[sourceId].cost;
+
+	if(oldCost>newCost)
+	{
+		//update the table
+		DVCell newCell;
+		newCell.destID = nodeId;
+		newCell.nextHopID = sourceId;
+		newCell.cost = newCost;
+		DVMap[nodeId] = newCell;
 	}
-	/* End Edit: Kai */
 }
 
-	/*EDIT: by Yanfei Wu */
+void RoutingProtocolImpl::sendDVUpdateMessage()
+{
+	for(int i=0; i<numOfPorts; i++)
+	{
+		if(ports[i].isAlive)
+		{
+			char type = DV;
+			short size = 8 + DVMap.size()*4;
+			short sourceId = myID;
+			short destinationId = ports[i].linkTo; 
+	
+			//put the message in a packet
+			char * packet = (char *)malloc(sizeof(char) * size);
+			*packet = type;
+			*(short *)(packet+2) = size;
+			*(short *)(packet+4) = sourceId;
+			*(short *)(packet+6) = destinationId;
+
+			int index = 8;
+			for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+			{
+				DVCell newCell = it -> second;
+				short nodeId = newCell.destID;
+				short cost = newCell.cost;
+				*(short *)(packet+index) = nodeId;
+				*(short *)(packet+index+2) = cost;
+				index += 4;
+			}
+
+			sys -> send(ports[i].number, packet, size);
+		}
+	}
+}
 
 /* set the alarm for expiration checking */
 void RoutingProtocolImpl::setExpAlarm() {
@@ -185,20 +273,14 @@ bool RoutingProtocolImpl::handlePP() {
 	printf("Node %d: pingpong message! time: %d\n\n", myID, sys->time());
 	/* TODO: for Kai Wu*/
 	
-	//------------------make ping package-----------------------------
-	ePacketType pingtype = PING;
-	int totalsize = 12;
-	//------------------end make package----------------------------------------
-	
-	
 	int count = numOfPorts;
 	while (count > 0){
 		//ports[count] do something
 		count--;
 		//----------------------------making ping package---------------
-		char *pingpackage = (char*)malloc(12 * sizeof(char));		// TODO: deal with the memory leak here
-		*pingpackage = pingtype;					//packet type
-		*(unsigned short *)(pingpackage+2) = totalsize; 		//size
+		char *pingpackage = (char*)malloc(12 * sizeof(char));
+		*pingpackage = PING;					//packet type
+		*(unsigned short *)(pingpackage+2) = 12; 		//size
 		*(unsigned short *)(pingpackage+4) = myID; 			//sourceID
 		*(int *)(pingpackage+8) = sys->time(); 				//time stamp
 		//----------------------------end making------------------------
@@ -217,7 +299,7 @@ bool RoutingProtocolImpl::handleUpdate() {
 		return LSUpdate();
 	else
 		printf("Node %d:\n\t***Error*** Unknown protocl when handling update\n\ttime: %d\n\n",
-			myID, sys->time());
+				myID, sys->time());
 
 	return false;
 }
@@ -299,10 +381,14 @@ void RoutingProtocolImpl::freeForward(Forward* toFree) {
 	toFree = NULL;
 }
 
-	/* END EDIT: Yanfei Wu */
+/* END EDIT: Yanfei Wu */
 
 /* TODO: for Yang Du*/
 bool RoutingProtocolImpl::DVUpdate() {
+	//for all the ports, 
+	for(int i=0; i<numOfPorts; i++)
+	{
+	}
 	return true;
 }
 
