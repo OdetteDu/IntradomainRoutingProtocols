@@ -186,7 +186,8 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 	}
 
 	sendDVUpdateMessage();
-	
+	updateForwardUsingDV();
+
 	packet = NULL;
 	delete(pck);
 }
@@ -262,7 +263,15 @@ void RoutingProtocolImpl::sendDVUpdateMessage()
 			{
 				DVCell newCell = it -> second;
 				short nodeId = newCell.destID;
-				short cost = newCell.cost;
+				short cost;
+				if(newCell.nextHopID == myID)
+				{
+				    cost = INFINITY_COST; 
+				}
+				else
+				{
+					cost = newCell.cost;
+				}
 				*(short *)(packet+index) = nodeId;
 				*(short *)(packet+index+2) = cost;
 				index += 4;
@@ -374,6 +383,23 @@ void RoutingProtocolImpl::updateForward(unsigned short destID, unsigned short ne
 		fw->nextPort = nextPort;
 		fw->isAlive = true;
 	}
+}
+
+void RoutingProtocolImpl::updateForwardUsingDV()
+{
+	map<short, int> portTable; //of destId nextPort
+
+	for(int i=0; i<numOfPorts; i++)
+	{
+		  portTable.insert(pair<short, int>(ports[i].linkTo, ports[i].number));
+	}
+
+	  for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+	  {
+		    DVCell dv = it -> second;
+			freeForward(forwards);
+			updateForward(dv.destID, dv.nextHopID, portTable[dv.nextHopID]); 
+	  }
 }
 
 /* disable a link in entry (set it as "not alive") */
@@ -492,6 +518,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 		}
 	}
 
+	updateForwardUsingDV();
 	return true;
 }
 

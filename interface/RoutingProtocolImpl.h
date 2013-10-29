@@ -114,6 +114,7 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void recvDV(unsigned short port, void *packet, unsigned short size);
 	void updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId);
 	void sendDVUpdateMessage();
+	void updateForwardUsingDV();
 };
 
 #endif
