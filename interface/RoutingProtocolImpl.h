@@ -96,9 +96,16 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void updateForward(unsigned short destID, unsigned short nextID, unsigned int nextPort);
 	// disable a link in entry
 	void disableForward(unsigned int destID);
+	// forward DATA packet
+	void forwardData(void* packet, unsigned short destID, unsigned short size);
 	// free forwarding table
 	void freeForward(Forward* toFree);
 
+	// Deal with the DATA packet
+	void recvDATA(unsigned short port, void *packet, unsigned short size);
+	// Deal with PING or PONG packet
+	void recvPP(unsigned short port, void *packet, unsigned short size);
+	
 	/* END EDIT: Yanfei Wu */
 
 	void recvDV(unsigned short port, void *packet, unsigned short size);
