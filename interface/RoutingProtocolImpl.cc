@@ -431,8 +431,16 @@ bool RoutingProtocolImpl::DVUpdate() {
 		else
 		{
 			//remove all the disconnected Node
-
+			DVMap.erase(ports[i].linkTo);
 			//remove all the entry with nextHopID==disconnected node
+			for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
+			{
+				DVCell c = it->second;
+				if(c.nextHopID == ports[i].linkTo)
+				{
+					DVMap.erase(c.destID);
+				}
+			}
 		}
 	}
 
