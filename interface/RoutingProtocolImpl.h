@@ -4,6 +4,9 @@
 #include "RoutingProtocol.h"
 #include "Node.h"
 #include "Port.h"
+#include <map>
+
+using namespace std;
 
 class RoutingProtocolImpl : public RoutingProtocol {
   public:

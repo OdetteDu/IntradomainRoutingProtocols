@@ -385,9 +385,55 @@ void RoutingProtocolImpl::freeForward(Forward* toFree) {
 
 /* TODO: for Yang Du*/
 bool RoutingProtocolImpl::DVUpdate() {
+	
+	int i;
+	map<short, int> directConnection;
+
+	for(i=0; i<numOfPorts; i++)
+	{
+		if(ports[i].isAlive)
+		{
+			directConnection.insert(pair<short, int>(ports[i].linkTo, ports[i].cost));
+		}
+	}
+
 	//for all the ports, 
-	for(int i=0; i<numOfPorts; i++)
+	for(i=0; i<numOfPorts; i++)
 	{	
+		Port port = ports[i];
+		if(port.isAlive)
+		{
+			//did the cost change?
+			DVCell dv = DVMap[ports[i].linkTo];
+			//save the old cost
+			int oldCost = dv.cost;
+			//update the direct node to the new cost
+			dv.cost = ports[i].cost;
+			//find all the nextHop with the direct Node
+			for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
+			{
+				DVCell c = it->second;
+				if(c.nextHopID == ports[i].linkTo)
+				{
+					//minus the old cost add the new cost
+					c.cost -= oldCost;
+					c.cost += ports[i].cost;
+
+					//determine if the new cost is higher than the direct Node
+					if(directConnection[c.destID] < c.cost)
+					{
+						  c.nextHopID = myID;
+						  c.cost = directConnection[c.destID];
+					}
+				}
+			}
+		}
+		else
+		{
+			//remove all the disconnected Node
+
+			//remove all the entry with nextHopID==disconnected node
+		}
 	}
 
 	return true;
