@@ -4,6 +4,10 @@
 #include "RoutingProtocol.h"
 #include "Node.h"
 #include "Port.h"
+#include <netinet/in.h>
+#include <map>
+
+using namespace std;
 
 class RoutingProtocolImpl : public RoutingProtocol {
   public:
@@ -63,10 +67,6 @@ class RoutingProtocolImpl : public RoutingProtocol {
 
 	map<short,DVCell> DVMap;
 
-	// end time for the system
-	// just for testing, will be removed
-	unsigned int endTime;
-
 	/* functions */
 	// set the expiration checking alarm
 	void setExpAlarm();
@@ -100,6 +100,8 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void forwardData(void* packet, unsigned short destID, unsigned short size);
 	// free forwarding table
 	void freeForward(Forward* toFree);
+	// print forwarding table
+	void printForward(Forward* toPrint);
 
 	// Deal with the DATA packet
 	void recvDATA(unsigned short port, void *packet, unsigned short size);
@@ -109,8 +111,9 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	/* END EDIT: Yanfei Wu */
 
 	void recvDV(unsigned short port, void *packet, unsigned short size);
-	void updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId);
+	bool updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId);
 	void sendDVUpdateMessage();
+	void updateForwardUsingDV();
 };
 
 #endif
