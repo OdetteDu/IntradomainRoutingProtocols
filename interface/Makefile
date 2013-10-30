@@ -6,8 +6,10 @@ OBJS =\
 	Event.o\
 	Link.o\
 	Node.o\
+	DataFwdImpl.o\
 	DVImpl.o\
 	PPImpl.o\
+	LSImpl.o\
 	RoutingProtocolImpl.o\
 	Simulator.o
 
@@ -32,8 +34,10 @@ $(OBJS): global.h
 Event.o: Event.h Link.h Node.h Simulator.h
 Link.o: Event.h Link.h Node.h Simulator.h
 Node.o: Event.h Link.h Node.h Simulator.h
+DataFwdImpl.o: RoutingProtocolImpl.h
 DVImpl.o: RoutingProtocolImpl.h
 PPImpl.o: RoutingProtocolImpl.h
+LSImpl.o: RoutingProtocolImpl.h
 Simulator.o: Event.h Link.h Node.h RoutingProtocol.h Simulator.h Port.h
 RoutingProtocolImpl.o: RoutingProtocolImpl.h
 
