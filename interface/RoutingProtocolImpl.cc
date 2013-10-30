@@ -15,9 +15,6 @@ RoutingProtocolImpl::RoutingProtocolImpl(Node *n) : RoutingProtocol(n) {
 	// port list
 	ports = NULL;
 
-	// forwarding table
-	forwards = NULL;
-
 	/* END EDIT: Yanfei Wu */
 }
 
@@ -26,8 +23,7 @@ RoutingProtocolImpl::~RoutingProtocolImpl() {
 	// free the memory allocated for ports and forwarding table
 	if (ports != NULL)
 		delete[] ports;
-	if (forwards != NULL)
-		freeForward(forwards);
+	Forwarding.clear();
 
 	// free the memory allocated for alarm messages
 	delete[] alarm_exp;
@@ -107,30 +103,30 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned short size) {
 	char *receive = (char *)packet;
 	ePacketType type = (ePacketType)(*(char *)packet);
-	unsigned short srcID = *(unsigned short*)(receive + 4);
+	unsigned short srcID = ntohs(*(unsigned short*)(receive + 4));
 
 	if (type == PING) {
 		char *pongpackage = (char *)malloc(12 * sizeof(char));
 		ePacketType pongtype = PONG;
-		*pongpackage = pongtype;			//packet type
-		*(unsigned short *)(pongpackage+2) = 12;	// size
-		*(unsigned short *)(pongpackage+4) = myID;	// sourceID is my ID
-		*(unsigned short *)(pongpackage+6) = srcID;	// destinationID is the sender's ID
-		*(int *)(pongpackage+8) = *(int*)(receive + 8);	// time stamp
-		//printf("\tReceive PING: from port %d, source: %d, time stamp: %d\n", port, 
-		//	srcID, *(int *)(receive + 8));
-		sys->send(port,pongpackage,size);
+		*pongpackage = pongtype;				//packet type
+		*(unsigned short *)(pongpackage+2) = htons(12);		// size
+		*(unsigned short *)(pongpackage+4) = htons(myID);	// sourceID is my ID
+		*(unsigned short *)(pongpackage+6) = htons(srcID);	// destinationID is the sender's ID
+		*(int *)(pongpackage+8) = *(int*)(receive + 8);		// time stamp
+		printf("\tReceive PING: from port %d, source: %d, time stamp: %d\n", port, 
+			srcID, ntohl(*(int *)(receive + 8)));
+		sys->send(port,pongpackage, 12);
 	} else if (type == PONG) {
-		int currentTime = sys->time();
-		int startsendtime = *(int*)(receive + 8);
-		int duration = currentTime - startsendtime;
+		unsigned int currentTime = sys->time();
+		unsigned int startsendtime = ntohl(*(int*)(receive + 8));
+		unsigned int duration = currentTime - startsendtime;
 		// update port status
 		ports[port].linkTo = srcID;
 		ports[port].cost = duration;
 		ports[port].update = currentTime;
 		ports[port].isAlive = true;
-		//printf("\tReceive PONG: from port %d, source: %d, duration: %d, time: %d\n",
-		//	port, srcID, duration, currentTime);
+		printf("\tReceive PONG: from port %d, source: %d, duration: %d, time: %d\n",
+			port, srcID, duration, currentTime);
 	}
 	
 	// free memory
@@ -182,7 +178,7 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 		isChange = updateDVTable(nodeId, cost, sourceId) | isChange;
 	}
 
-	for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); it++) {
+	for (map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); it++) {
 		DVCell dvc = it->second;
 		if (dvc.nextHopID == sourceId && dvc.update < sys->time()) {
 			isChange = true;
@@ -195,7 +191,7 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 					newCell.destID = dvc.destID;
 					newCell.nextHopID = myID;
 					newCell.update = sys->time();
-					DVMap.insert(pair<short, DVCell>(dvc.destID, newCell));
+					DVMap.insert(pair<unsigned short, DVCell>(dvc.destID, newCell));
 					break;
 				}
 		}
@@ -216,11 +212,9 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 void RoutingProtocolImpl::recvDATA(unsigned short port, void *packet, unsigned short size) {
 	char *receive = (char *)packet;
 	ePacketType type = (ePacketType)(*(char *)packet);
-	unsigned short size1 = ntohs(*(unsigned short*)(receive + 2));
 	unsigned short srcID = ntohs(*(unsigned short*)(receive + 4));
 	unsigned short destID = ntohs(*(unsigned short*)(receive + 6));
 	int i;
-	printf("  size: %d, size1: %d\n", size, size1);
 
 	if (type == DATA) { // forward DATA packet
 		if (port == SPECIAL_PORT) { // the packet is generated locally
@@ -230,12 +224,17 @@ void RoutingProtocolImpl::recvDATA(unsigned short port, void *packet, unsigned s
 		else { // the packet is from other ports
 			if (myID == destID) { // reach destination
 				// print data content
-				printf("\tReceive data from %d, payload:\n\t", srcID);
+				printf("\tReceive data from %d, ", srcID);
 				char *payload = receive + 8;
-				for (i = 0; i < size - 8; i++) {
-					printf("%c ", *payload);
-					payload++;
+				if (size > 8) {
+					printf("payload:\n\t");
+					for (i = 0; i < size - 8; i++) {
+						printf("%c ", *payload);
+						payload++;
+					}
 				}
+				else
+					printf("No payload in the message.");
 				printf("\n");
 				// free the memory
 				payload = NULL;
@@ -253,7 +252,7 @@ bool RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short co
 	if (nodeId == myID || cost == INFINITY_COST)
 		return false;
 
-	int newCost = cost + DVMap[sourceId].cost;
+	unsigned int newCost = cost + DVMap[sourceId].cost;
 	if(DVMap.find(nodeId)==DVMap.end() || DVMap[nodeId].cost > newCost)
 	{
 		//update the table
@@ -290,7 +289,7 @@ void RoutingProtocolImpl::sendDVUpdateMessage()
 			*(short *)(packet+6) = destinationId;
 
 			int index = 8;
-			for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+			for (map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 			{
 				DVCell newCell = it->second;
 				short nodeId = newCell.destID;
@@ -338,7 +337,7 @@ bool RoutingProtocolImpl::handleExp() {
 		}
 
 	bool isChange = false;
-	for(map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+	for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 	{		
 		DVCell dvc = it->second;
 		if (sys->time() - dvc.update >= 45000) {
@@ -351,13 +350,14 @@ bool RoutingProtocolImpl::handleExp() {
 					newCell.destID = dvc.destID;
 					newCell.nextHopID = myID;
 					newCell.update = sys->time();
-					DVMap.insert(pair<short, DVCell>(dvc.destID, newCell));
+					DVMap.insert(pair<unsigned short, DVCell>(dvc.destID, newCell));
 					break;
 				}
 		}
 	}
 
 	if (isChange) {
+		printf("\tDV table has been updated. Flood the change.\n");
 		sendDVUpdateMessage();
 		updateForwardUsingDV();
 	}
@@ -367,7 +367,7 @@ bool RoutingProtocolImpl::handleExp() {
 
 /* send ping-pong message to update costs of neighbours */
 bool RoutingProtocolImpl::handlePP() {
-	//printf("Node %d: pingpong message! time: %d\n\n", myID, sys->time());
+	printf("  Node %d: pingpong message!\n", myID);
 	/* TODO: for Kai Wu*/
 	
 	int count = numOfPorts;
@@ -376,13 +376,13 @@ bool RoutingProtocolImpl::handlePP() {
 		count--;
 		//----------------------------making ping package---------------
 		char *pingpackage = (char*)malloc(12 * sizeof(char));
-		*pingpackage = PING;					//packet type
-		*(unsigned short *)(pingpackage+2) = 12; 		//size
-		*(unsigned short *)(pingpackage+4) = myID; 			//sourceID
-		*(int *)(pingpackage+8) = sys->time(); 				//time stamp
+		*pingpackage = PING;						//packet type
+		*(unsigned short *)(pingpackage+2) = htons(12); 		//size
+		*(unsigned short *)(pingpackage+4) = htons(myID); 		//sourceID
+		*(int *)(pingpackage+8) = htonl(sys->time()); 			//time stamp
 		//----------------------------end making------------------------
 		sys->send(count, pingpackage, 12);
-		//printf("\tSend PING to port: %d, time stamp: %d\n", count, sys->time());
+		printf("\tSend PING to port: %d, time stamp: %d\n", count, sys->time());
 	}
 	return true;
 }
@@ -414,128 +414,85 @@ void RoutingProtocolImpl::initPorts(int number) {
 }
 
 /* find the forwarding entry with destination router ID */
-Forward* RoutingProtocolImpl::findForward(unsigned int dest) {
-	Forward* ret = forwards;
-	while (ret != NULL) {
-		if (ret->destID == dest)
-			return ret;
-		else
-			ret = ret->next;
-	}
-	return NULL;
+unsigned short RoutingProtocolImpl::findForward(unsigned int dest) {
+	if (Forwarding.find(dest) == Forwarding.end())
+		return SPECIAL_PORT;
+	else
+		return Forwarding[dest];
 }
 
-/* update a table entry with destination and the next router to get to it
+/* update a table entry with destination and the next port to reach it
  * if entry doen't exist, a new one will be created
  */
-void RoutingProtocolImpl::updateForward(unsigned short destID, unsigned short nextID, unsigned int nextPort) {
-	Forward* fw = findForward(destID);
-	if (fw == NULL) {
-		Forward* newFW = (Forward *)malloc(sizeof(Forward));
-		newFW->destID = destID;
-		newFW->nextID = nextID;
-		newFW->nextPort = nextPort;
-		newFW->isAlive = true;
-		newFW->next = NULL;
-		if (forwards == NULL)
-			forwards = newFW;
-		else {
-			newFW->next = forwards->next;
-			forwards->next = newFW;
-		}
-	}
-	else {
-		fw->destID = destID;
-		fw->nextID = nextID;
-		fw->nextPort = nextPort;
-		fw->isAlive = true;
-	}
+void RoutingProtocolImpl::updateForward(unsigned short destID, unsigned int fwdPort) {
+	Forwarding[destID] = fwdPort;
 }
 
+/* disable a link in entry (set it as "not alive") */
+void RoutingProtocolImpl::disableForward(unsigned int destID) {
+	unsigned short fwdPort = findForward(destID);
+	if (fwdPort < SPECIAL_PORT)
+		Forwarding.erase(destID);
+}
+
+/* forward DATA packet to a specific destination ID */
+void RoutingProtocolImpl::forwardData(void* packet, unsigned short destID, unsigned short size) {
+	unsigned short fwdPort = findForward(destID);
+	if (fwdPort == SPECIAL_PORT) { // not reachable, free the packet memory
+		printf("\tCannot forward the packet (not reachable).\n");
+		delete (char*)packet;
+	}
+	else { // reachable, so forward it
+		printf("\tForward the packet through port %d.\n", fwdPort);
+		sys->send(fwdPort, packet, size);
+	}
+}
+/* print the forwarding table */
+void RoutingProtocolImpl::printForward() {
+	printf("  Forwarding table: \n");
+	for (map<unsigned short, unsigned short>::iterator it = Forwarding.begin(); it != Forwarding.end(); it++)
+		printf("\tDest: %d, Port: %d\n", it->first, it->second);
+}
+
+/* END EDIT: Yanfei Wu */
+
+/* TODO: for Yang Du*/
 void RoutingProtocolImpl::updateForwardUsingDV()
 {
-	map<short, int> portTable; //of destId nextPort
+	map<unsigned short, unsigned int> portTable; //of destId nextPort
 
 	for(int i=0; i<numOfPorts; i++)
 		if (ports[i].isAlive)
-			portTable.insert(pair<short, int>(ports[i].linkTo, ports[i].number));
-
-	freeForward(forwards);
-	forwards = NULL;
-	for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+			portTable.insert(pair<unsigned short, unsigned int>(ports[i].linkTo, ports[i].number));
+	
+	Forwarding.clear();
+	for (map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 	{
 		DVCell dv = it->second;
 		if (dv.nextHopID == myID)
-			updateForward(dv.destID, dv.nextHopID, portTable[dv.destID]);
+			updateForward(dv.destID, portTable[dv.destID]);
 		else
-			updateForward(dv.destID, dv.nextHopID, portTable[dv.nextHopID]);
+			updateForward(dv.destID, portTable[dv.nextHopID]);
 	}
-	printForward(forwards);
-	printf("\tprint DV:\n");
-	for(map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+	printForward();
+	printf("  print DV:\n");
+	for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 	{
 		DVCell dvc = it -> second;
 		printf("  DestID: %d, Cost: %d, NextHop: %d, update: %d\n", dvc.destID, dvc.cost, dvc.nextHopID, dvc.update);
 	}
 }
 
-/* disable a link in entry (set it as "not alive") */
-void RoutingProtocolImpl::disableForward(unsigned int destID) {
-	Forward* fw = findForward(destID);
-	if (fw != NULL)
-		fw->isAlive = false;
-}
-
-/* forward DATA packet to a specific destination ID */
-void RoutingProtocolImpl::forwardData(void* packet, unsigned short destID, unsigned short size) {
-	Forward *destEntry = findForward(destID);
-	if (destEntry == NULL) { // not reachable, free the packet memory
-		printf("\tCannot forward the packet (not reachable).\n");
-		delete (char*)packet;
-	}
-	else { // reachable, so forward it
-		printf("\tForward the packet through port %d.\n", destEntry->nextPort);
-		sys->send(destEntry->nextPort, packet, size);
-	}
-}
-
-/* a recursive function to free memory of forwarding table */
-void RoutingProtocolImpl::freeForward(Forward* toFree) {
-	if (toFree == NULL)
-		return;
-	if (toFree->next == NULL)
-		delete toFree;
-	else {
-		freeForward(toFree->next);
-		delete toFree;
-	}
-	toFree = NULL;
-}
-
-/* print the forwarding table */
-void RoutingProtocolImpl::printForward(Forward* toPrint) {
-	if (toPrint == NULL)
-		printf("End print forwarding table.\n");
-	else {
-		printf("  Dest: %d, Next: %d, Port: %d, addr: 0x%x, next addr: 0x%x\n", toPrint->destID, toPrint->nextID, toPrint->nextPort,
-			toPrint, toPrint->next);
-		printForward(toPrint->next);
-	}
-}
-
-/* END EDIT: Yanfei Wu */
-
-/* TODO: for Yang Du*/
 bool RoutingProtocolImpl::DVUpdate() {
 	
 	int i;
-	map<short, int> directConnection;
+	map<unsigned short, unsigned int> directConnection;
 
 	for(i=0; i<numOfPorts; i++)
 	{
 		if(ports[i].isAlive)
 		{
-			directConnection.insert(pair<short, int>(ports[i].linkTo, ports[i].cost));
+			directConnection.insert(pair<unsigned short, unsigned int>(ports[i].linkTo, ports[i].cost));
 		}
 	}
 	
@@ -551,7 +508,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 				newCell.destID = ports[i].linkTo;
 				newCell.nextHopID = myID;
 				newCell.update = sys->time();
-				DVMap.insert(pair<short, DVCell>(ports[i].linkTo, newCell));
+				DVMap.insert(pair<unsigned short, DVCell>(ports[i].linkTo, newCell));
 			}
 			else {
 				//did the cost change?
@@ -559,7 +516,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 				dv->update = sys->time();
 
 				//save the old cost
-				int oldCost = dv->cost;
+				unsigned int oldCost = dv->cost;
 
 				if(dv->nextHopID != myID)
 				{
@@ -578,7 +535,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 				//update the direct node to the new cost
 				dv->cost = ports[i].cost;
 				//find all the nextHop with the direct Node
-				for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
+				for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
 				{
 					DVCell *c = &(it->second);
 					if(c->nextHopID == ports[i].linkTo)
@@ -601,7 +558,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 		}
 		else
 		{
-			for(map<short, DVCell>::iterator iter = DVMap.begin(); iter!=DVMap.end(); ++iter)
+			for(map<unsigned short, DVCell>::iterator iter = DVMap.begin(); iter!=DVMap.end(); ++iter)
 			{
 				DVCell dvc = iter -> second;
 				if(dvc.nextHopID == myID && directConnection.find(dvc.destID)==directConnection.end())
@@ -609,7 +566,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 					//remove all the disconnected Node
 					DVMap.erase(dvc.destID);
 					//remove all the entry with nextHopID==disconnected node
-					for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
+					for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
 					{
 						DVCell c = it->second;
 						if(c.nextHopID == dvc.destID)
@@ -623,7 +580,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 								newCell.destID = c.destID;
 								newCell.nextHopID = myID;
 								newCell.update = sys->time();
-								DVMap.insert(pair<short, DVCell>(c.destID, newCell));
+								DVMap.insert(pair<unsigned short, DVCell>(c.destID, newCell));
 							}
 						}
 					}

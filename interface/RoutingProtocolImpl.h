@@ -62,10 +62,11 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	// port informations
 	Port *ports;
 
-	// forwarding table informations
-	Forward *forwards;
-
-	map<short,DVCell> DVMap;
+	// forwarding maping (table): from destination ID to forwarding port
+	map<unsigned short, unsigned short> Forwarding;
+	
+	// map of Distance Vector table
+	map<unsigned short, DVCell> DVMap;
 
 	/* functions */
 	// set the expiration checking alarm
@@ -91,17 +92,15 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void initPorts(int number);
 
 	// find forwarding entry
-	Forward* findForward(unsigned int dest);
+	unsigned short findForward(unsigned int dest);
 	// update table entry
-	void updateForward(unsigned short destID, unsigned short nextID, unsigned int nextPort);
+	void updateForward(unsigned short destID, unsigned int fwdPort);
 	// disable a link in entry
 	void disableForward(unsigned int destID);
 	// forward DATA packet
 	void forwardData(void* packet, unsigned short destID, unsigned short size);
 	// free forwarding table
-	void freeForward(Forward* toFree);
-	// print forwarding table
-	void printForward(Forward* toPrint);
+	void printForward();
 
 	// Deal with the DATA packet
 	void recvDATA(unsigned short port, void *packet, unsigned short size);

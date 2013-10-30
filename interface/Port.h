@@ -10,6 +10,7 @@ class Port {
 	bool isAlive;
 };
 
+/*
 struct _Forward;
 
 typedef struct _Forward {
@@ -19,6 +20,7 @@ typedef struct _Forward {
 	bool isAlive;
 	struct _Forward *next;
 } Forward;
+*/
 
 struct _DVCell;
 
