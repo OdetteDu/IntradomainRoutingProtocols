@@ -1,7 +1,7 @@
 #include "RoutingProtocolImpl.h"
 
 /* find the forwarding entry with destination router ID */
-unsigned short RoutingProtocolImpl::findForward(unsigned int dest) {
+unsigned short RoutingProtocolImpl::findForward(unsigned short dest) {
 	if (Forwarding.find(dest) == Forwarding.end())
 		return SPECIAL_PORT;
 	else
@@ -11,12 +11,12 @@ unsigned short RoutingProtocolImpl::findForward(unsigned int dest) {
 /* update a table entry with destination and the next port to reach it
  * if entry doen't exist, a new one will be created
  */
-void RoutingProtocolImpl::updateForward(unsigned short destID, unsigned int fwdPort) {
+void RoutingProtocolImpl::updateForward(unsigned short destID, unsigned short fwdPort) {
 	Forwarding[destID] = fwdPort;
 }
 
 /* disable a link in entry (set it as "not alive") */
-void RoutingProtocolImpl::disableForward(unsigned int destID) {
+void RoutingProtocolImpl::disableForward(unsigned short destID) {
 	unsigned short fwdPort = findForward(destID);
 	if (fwdPort < SPECIAL_PORT)
 		Forwarding.erase(destID);

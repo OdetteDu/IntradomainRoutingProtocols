@@ -92,11 +92,11 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void initPorts(int number);
 
 	// find forwarding entry
-	unsigned short findForward(unsigned int dest);
+	unsigned short findForward(unsigned short dest);
 	// update table entry
-	void updateForward(unsigned short destID, unsigned int fwdPort);
+	void updateForward(unsigned short destID, unsigned short fwdPort);
 	// disable a link in entry
-	void disableForward(unsigned int destID);
+	void disableForward(unsigned short destID);
 	// forward DATA packet
 	void forwardData(void* packet, unsigned short destID, unsigned short size);
 	// free forwarding table

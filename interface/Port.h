@@ -3,7 +3,7 @@
 
 class Port {
   public:
-	unsigned int number;
+	unsigned short number;
 	unsigned short linkTo;
 	unsigned int cost;
 	unsigned int update;
