@@ -111,10 +111,10 @@ bool RoutingProtocolImpl::updateLS() {
                 
 void RoutingProtocolImpl::dijkstra(){
     //initialization:
-    map<short, double> dijkstraMap;
-    vector<short> S;
+    map<unsigned short, double> dijkstraMap;
+    vector<unsigned short> S;
     forwardTableEntry tempEntry;
-    
+    map<unsigned short, unsigned short> newForwarding;
     //S={A}
     S.push_back(sys->myID);
     /*For all nodes v;
@@ -125,24 +125,24 @@ void RoutingProtocolImpl::dijkstra(){
      alternatively, we create a map where all nodes v have D(v) = infinity
      then, change the cost to an adjacent nodes v to c(A,v)
      */
-    for(map<int,Vertice>::iterator its = nodeVec.begin();its != nodeVec.end();its++){
+    for(map<unsigned short,Vertice>::iterator its = nodeVec.begin();its != nodeVec.end();its++){
         if(its->first != sys->id){
             forwardTableEntry[its->first].cost=INFINITY_COST;
         }
     }
-    for (map<short, portInfo>::iterator _iterator = nodeVec.begain(); _iterator != nodeVec.end(); ++_iterator) {
+    for (map<unsigned short, portInfo>::iterator _iterator = nodeVec.begain(); _iterator != nodeVec.end(); ++_iterator) {
         if(!fwdTable.count(its->second.neighborID)){
-            tempEntry=forwardTableEntry(its->second.cost, its->second.neighborID, true);
-            fwdTable[its->second.neighborID]=cur_record;
+            tempEntry=forwardTableEntry(_iterator->second.cost, _iterator->second.neighborID, true);
+            fwdTable[_iterator->second.neighborID]=tempEntry;
         }
         else{
             if(fwdTable[its->second.neighborID].cost>its->second.cost){
-                tempEntry=forwardTableEntry(its->second.cost, its->second.neighborID, true);
-                fwdTable[its->second.neighborID]=cur_record;
+                tempEntry=forwardTableEntry(_iterator->second.cost, _iterator->second.neighborID, true);
+                fwdTable[_iterator->second.neighborID]=tempEntry;
             }
         }
     }
-    for (map<short, forwardTableEntry>::iterator _iterator = fwdTable.begain(); _iterator != fwdTable.end(); ++_iterator){
+    for (map<unsigned short, forwardTableEntry>::iterator _iterator = fwdTable.begain(); _iterator != fwdTable.end(); ++_iterator){
         dijkstraMap[_iterator->first] = _iterator->second.cost;
     }
     /*Loop
@@ -152,17 +152,17 @@ void RoutingProtocolImpl::dijkstra(){
     unitl all nodes are in S
      */
     //setup a map of not-yet-visited nodes
-    map<short, double> notVisited;
+    map<unsigned short, double> notVisited;
     notVisited = dijkstraMap;
     notVisited.erase(sys->myID);
     //doing the loop discribed above
     while (!notVisited.empty()) {
-        pair<short, double> nodeW = nodeIDWithMinDistance(notVisited);
-        short W = nodeW->first;
+        pair<unsigned short, double> nodeW = nodeIDWithMinDistance(notVisited);
+        unsigned short W = nodeW->first;
         double distanceToW = nodeW->second;
         notVisited.erase(w);
-        map<int, portInfo> tempNeighbor = nodeVec[w].neighbor;
-        for (map<int, portInfo>::iterator _iterator = tempNeighbor.begin(); _iterator != tempNeighbor.end(); ++_iterator) {
+        map<unsigned short, portInfo> tempNeighbor = nodeVec[w].neighbor;
+        for (map<unsigned short, portInfo>::iterator _iterator = tempNeighbor.begin(); _iterator != tempNeighbor.end(); ++_iterator) {
             if (notVisited.count(_iterator->second.neighborID)) {
                 double distanceToV = fwdTable[_iterator->second.neighborID].cost;
                 double newDistanceToV = _iterator->second.cost + distanceToW;;
