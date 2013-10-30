@@ -34,44 +34,43 @@ class RoutingProtocolImpl : public RoutingProtocol {
     // special port number of SPECIAL_PORT (see global.h) to indicate
     // that the packet is generated locally and not received from 
     // a neighbor router.
-    //-----------------Cheng-----------------------------------------------
     struct package{
-        int type;
-        int size;
-        int srcid;
-        int dstid;
+        char type;
+        unsigned short size;
+        unsigned short srcid;
+        unsigned short dstid;
         int data;
         void *table;
         package(){};
-        package(int type, int size, int srcid, int dstid, int data, void *table):type(type),size(size),srcid(srcid),dstid(dstid),data(data),table(table){};
+        package(char type, unsigned short size, unsigned short srcid, unsigned short dstid, int data, void *table):type(type),size(size),srcid(srcid),dstid(dstid),data(data),table(table){};
     };
 
     struct Vertice{
         int sequence;
-        short NodeID;
-        map<int,Port_record> neighbor;
+        unsigned short NodeID;
+        map<unsigned short,portInfo> neighbor;
         Vertice(){};
         Vertice(int sequence, short NodeID) : sequence(sequence), NodeID(NodeID){};
     };
     struct forwardTableEntry{
         double cost;
-        short nextHop;
+        unsigned short nextHop;
         bool adjacency;
         forwardTableEntry() : cost(0), nextHop(0), direct(false){};
-        forwardTableEntry(double cost, short nextHop, bool adjacency) : cost(cost), nextHop(nextHop), adjacency(adjacency){};
+        forwardTableEntry(double cost, unsigned short nextHop, bool adjacency) : cost(cost), nextHop(nextHop), adjacency(adjacency){};
     };
     struct portInfo{
-        short neighborID;
+        unsigned short neighborID;
         double cost;
         portInfo(){};
         portInfo(short neighborID, double cost) : neighborID(neighborID), cost(cost){};
     };
-    map<short, forwardTableEntry> fwdTable;
-    map<short, Vertice> nodeVec;
-    map<short,portInfo> portStatus;
+    map<unsigned short, forwardTableEntry> fwdTable;
+    map<unsigned short, Vertice> nodeVec;
+    map<unsigned short,portInfo> portStatus;
     
     int sequence
-    //-----------------Wan-------------------------------------------
+
  private:
     Node *sys; // To store Node object; used to access GSR9999 interfaces 
 };
