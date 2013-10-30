@@ -19,6 +19,39 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
   // add your own code
+      //START Cheng-------------------------------------------------------------------------
+    package *p = (package *)packet;
+    if(packet->type == LSP){
+        int LS_change=0;
+        map<int,Vertice> * passVec=(map<int,Vertice> *)(p->table);
+        for(map<int,Vertice>::iterator its = passVec->begin();its != passVec->end();its++){
+            if(!nodeVec.count(its->second.NodeID)){
+                nodeVec[its->second.NodeID]=its->second;
+                nodeVec[its->second.NodeID].sequence_number=sim->global_time;
+                LS_change=1;
+                
+            }
+            else if(its->second.sequence_number>nodeVec[its->second.NodeID].sequence_number){
+                nodeVec[its->second.NodeID]=its->second;
+                nodeVec[its->second.NodeID].sequence_number=sim->global_time;
+                LS_change=1;
+                
+            }
+        }
+        
+        
+        if(LS_change==1){
+            void *nodeVec_2= &(nodeVec);
+            for(int k = 0; k < port_status.size(); k++){
+                int dst = port_status[k].neiNodeID;
+                if(dst!=port){
+                    p = new package(4,12,sys->id,dst,0,nodeVec_2);
+                    sys->send(k,p,sizeof(struct package));
+                }
+            }
+        }
+    }
+    //END Cheng------------------------------------------------------------------------------
 }
 
 // add more of your own code
