@@ -195,9 +195,11 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 void RoutingProtocolImpl::recvDATA(unsigned short port, void *packet, unsigned short size) {
 	char *receive = (char *)packet;
 	ePacketType type = (ePacketType)(*(char *)packet);
-	unsigned short srcID = *(unsigned short*)(receive + 4);
-	unsigned short destID = *(unsigned short*)(receive + 6);
+	unsigned short size1 = ntohs(*(unsigned short*)(receive + 2));
+	unsigned short srcID = ntohs(*(unsigned short*)(receive + 4));
+	unsigned short destID = ntohs(*(unsigned short*)(receive + 6));
 	int i;
+	printf("  size: %d, size1: %d\n", size, size1);
 
 	if (type == DATA) { // forward DATA packet
 		if (port == SPECIAL_PORT) { // the packet is generated locally
@@ -389,16 +391,16 @@ void RoutingProtocolImpl::updateForwardUsingDV()
 	map<short, int> portTable; //of destId nextPort
 
 	for(int i=0; i<numOfPorts; i++)
-	{
-		  portTable.insert(pair<short, int>(ports[i].linkTo, ports[i].number));
-	}
+		if (ports[i].isAlive)
+			portTable.insert(pair<short, int>(ports[i].linkTo, ports[i].number));
 
-	  for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
-	  {
-		    DVCell dv = it -> second;
-			freeForward(forwards);
-			updateForward(dv.destID, dv.nextHopID, portTable[dv.nextHopID]); 
-	  }
+	for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+	{
+		DVCell dv = it->second;
+		freeForward(forwards);
+		updateForward(dv.destID, dv.nextHopID, portTable[dv.nextHopID]);
+	}
+	printForward(forwards);
 }
 
 /* disable a link in entry (set it as "not alive") */
@@ -423,6 +425,8 @@ void RoutingProtocolImpl::forwardData(void* packet, unsigned short destID, unsig
 
 /* a recursive function to free memory of forwarding table */
 void RoutingProtocolImpl::freeForward(Forward* toFree) {
+	if (toFree == NULL)
+		return;
 	if (toFree->next == NULL)
 		delete toFree;
 	else {
@@ -432,6 +436,16 @@ void RoutingProtocolImpl::freeForward(Forward* toFree) {
 	toFree = NULL;
 }
 
+/* print the forwarding table */
+void RoutingProtocolImpl::printForward(Forward* toPrint) {
+	if (toPrint == NULL)
+		printf("End print forwarding table.\n");
+	else {
+		printf("  Dest: %d, Next: %d, Port: %d\n", toPrint->destID, toPrint->nextID, toPrint->nextPort);
+		printForward(toPrint->next);
+	}
+}
+
 /* END EDIT: Yanfei Wu */
 
 /* TODO: for Yang Du*/
@@ -439,6 +453,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 	
 	int i;
 	map<short, int> directConnection;
+	printf("get direct connection...\n");
 
 	for(i=0; i<numOfPorts; i++)
 	{
@@ -447,49 +462,63 @@ bool RoutingProtocolImpl::DVUpdate() {
 			directConnection.insert(pair<short, int>(ports[i].linkTo, ports[i].cost));
 		}
 	}
-
+	
+	printf("loop all ports\n");
 	//for all the ports, 
 	for(i=0; i<numOfPorts; i++)
 	{	
 		Port port = ports[i];
 		if(port.isAlive)
-		{
-			//did the cost change?
-			DVCell *dv = &DVMap[ports[i].linkTo];
-
-			//save the old cost
-			int oldCost = dv->cost;
-
-			if(dv->nextHopID != myID)
-			{
-				  if(dv->cost > ports[i].cost)
-				  {
-					    //update to use the direct link
-						dv->cost = ports[i].cost;
-						dv->nextHopID = myID;
-				  }
-				  else
-				  {
-					    continue;
-				  }
+		{	
+			printf("port %d...\n", i);
+			if (DVMap.find(ports[i].linkTo) == DVMap.end()) {
+				DVCell newCell;
+				newCell.cost = ports[i].cost;
+				newCell.destID = ports[i].linkTo;
+				newCell.nextHopID = myID;
+				DVMap.insert(pair<short, DVCell>(ports[i].linkTo, newCell));
+				printf("finish inserting new cell...\n");
 			}
-			//update the direct node to the new cost
-			dv->cost = ports[i].cost;
-			//find all the nextHop with the direct Node
-			for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
-			{
-				DVCell c = it->second;
-				if(c.nextHopID == ports[i].linkTo)
-				{
-					//minus the old cost add the new cost
-					c.cost -= oldCost;
-					c.cost += ports[i].cost;
+			else {
+				//did the cost change?
+				DVCell dv = DVMap[ports[i].linkTo];
 
-					//determine if the new cost is higher than the direct Node
-					if(directConnection[c.destID] < c.cost)
+				//save the old cost
+				int oldCost = dv.cost;
+
+				if(dv.nextHopID != myID)
+				{
+					  if(dv.cost > ports[i].cost)
+					  {
+						//update to use the direct link
+						dv.cost = ports[i].cost;
+						dv.nextHopID = myID;
+					  }
+					  else
+						    continue;
+				}
+				else if (oldCost == ports[i].cost)
+					continue;
+
+				//update the direct node to the new cost
+				dv.cost = ports[i].cost;
+				//find all the nextHop with the direct Node
+				for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
+				{
+					DVCell *c = &(it->second);
+					if(c->nextHopID == ports[i].linkTo)
 					{
-						  c.nextHopID = myID;
-						  c.cost = directConnection[c.destID];
+						//minus the old cost add the new cost
+						c->cost -= oldCost;
+						c->cost += ports[i].cost;
+
+						//determine if the new cost is higher than the direct Node
+						if(directConnection.find(c->destID) != directConnection.end()
+							&& directConnection[c->destID] < c->cost)
+						{
+							  c->nextHopID = myID;
+							  c->cost = directConnection[c->destID];
+						}
 					}
 				}
 			}
@@ -499,7 +528,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 			for(map<short, DVCell>::iterator iter = DVMap.begin(); iter!=DVMap.end(); ++iter)
 			{
 				DVCell dvc = iter -> second;
-				if(dvc.nextHopID == myID && directConnection.find(dvc.destID)!=directConnection.end())
+				if(dvc.nextHopID == myID && directConnection.find(dvc.destID)==directConnection.end())
 				{
 					//remove all the disconnected Node
 					DVMap.erase(dvc.destID);

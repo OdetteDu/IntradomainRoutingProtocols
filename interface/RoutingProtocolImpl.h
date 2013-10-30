@@ -4,6 +4,7 @@
 #include "RoutingProtocol.h"
 #include "Node.h"
 #include "Port.h"
+#include <netinet/in.h>
 #include <map>
 
 using namespace std;
@@ -103,6 +104,8 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void forwardData(void* packet, unsigned short destID, unsigned short size);
 	// free forwarding table
 	void freeForward(Forward* toFree);
+	// print forwarding table
+	void printForward(Forward* toPrint);
 
 	// Deal with the DATA packet
 	void recvDATA(unsigned short port, void *packet, unsigned short size);
