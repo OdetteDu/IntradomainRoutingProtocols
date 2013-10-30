@@ -26,7 +26,7 @@ typedef struct _DVCell {
 	unsigned short destID;
 	unsigned short nextHopID;
 	unsigned int cost;
-	
+	unsigned int update;
 } DVCell;
 
 #endif

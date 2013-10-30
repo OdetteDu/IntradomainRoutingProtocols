@@ -18,9 +18,6 @@ RoutingProtocolImpl::RoutingProtocolImpl(Node *n) : RoutingProtocol(n) {
 	// forwarding table
 	forwards = NULL;
 
-	// time for ending the simulation (just for testing)
-	endTime = 30000;
-
 	/* END EDIT: Yanfei Wu */
 }
 
@@ -62,28 +59,24 @@ void RoutingProtocolImpl::init(unsigned short num_ports, unsigned short router_i
 
 void RoutingProtocolImpl::handle_alarm(void *data) {
 	/* EDIT: by Yanfei Wu */
-	if (sys->time() <= endTime) {	// this restriction is merely for testing
-
-		char type = *(char*)data;
-		switch (type) {
-		case 'e':
-			handleExp();
-			setExpAlarm();		// finish expiration work, reset the alarm
-			break;
-		case 'p':
-			handlePP();
-			setPPAlarm();		// finish sending ping-pong message, reset the alarm
-			break;
-		case 'u':
-			handleUpdate();
-			setUpdateAlarm();	// finish update protocol tables, reset the alarm
-			break;
-		default:
-			printf("Node %d:\n\t***Error*** Unknown alarm occurs\n\ttime: %d\n\n", myID, sys->time());
-			break;
-		} // end switch (type)
-
-	} // end: if (sys->time() < endTime)
+	char type = *(char*)data;
+	switch (type) {
+	case 'e':
+		handleExp();
+		setExpAlarm();		// finish expiration work, reset the alarm
+		break;
+	case 'p':
+		handlePP();
+		setPPAlarm();		// finish sending ping-pong message, reset the alarm
+		break;
+	case 'u':
+		handleUpdate();
+		setUpdateAlarm();	// finish update protocol tables, reset the alarm
+		break;
+	default:
+		printf("Node %d:\n\t***Error*** Unknown alarm occurs\n\ttime: %d\n\n", myID, sys->time());
+		break;
+	}
 	/* END EDIT: Yanfei Wu */
 }
 
@@ -151,6 +144,9 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 	short packetSize = *(short*)(pck + 2);
 	short sourceId = *(short*)(pck + 4);
 	bool isChange = false;
+	int i;
+
+	printf("\treceive from %d\n", sourceId);
 
 	if(DVMap.find(sourceId)==DVMap.end())
 	{
@@ -170,6 +166,7 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 			DVMap[sourceId].destID = sourceId;
 			DVMap[sourceId].cost = ports[portNumber].cost;
 			DVMap[sourceId].nextHopID = myID;
+			DVMap[sourceId].update = sys->time();
 		}
 		else
 		{
@@ -178,16 +175,36 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 		}
 	}
 
-	for(int i=0; i<packetSize/4-2; i++)
+	for (i=0; i<packetSize/4-2; i++)
 	{
 		short nodeId = *(short*)(pck + 8 + i*4);
 		short cost = *(short*)(pck + 8 + 2 + i*4);
 		isChange = updateDVTable(nodeId, cost, sourceId) | isChange;
 	}
 
-	if (isChange)
+	for (map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); it++) {
+		DVCell dvc = it->second;
+		if (dvc.nextHopID == sourceId && dvc.update < sys->time()) {
+			isChange = true;
+			DVMap.erase(dvc.destID);
+			//determine if there is direct link
+			for (i = 0; i < numOfPorts; i++)
+				if (ports[i].isAlive && ports[i].linkTo == dvc.destID) {					
+					DVCell newCell;
+					newCell.cost = ports[i].cost;
+					newCell.destID = dvc.destID;
+					newCell.nextHopID = myID;
+					newCell.update = sys->time();
+					DVMap.insert(pair<short, DVCell>(dvc.destID, newCell));
+					break;
+				}
+		}
+	}
+
+	if (isChange) {
 		sendDVUpdateMessage();
-	updateForwardUsingDV();
+		updateForwardUsingDV();
+	}
 
 	packet = NULL;
 	delete(pck);
@@ -231,21 +248,25 @@ void RoutingProtocolImpl::recvDATA(unsigned short port, void *packet, unsigned s
 	
 bool RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId)
 {
-	if (nodeId == myID)
+	if (nodeId == myID || cost == INFINITY_COST)
 		return false;
+
 	int newCost = cost + DVMap[sourceId].cost;
-	if(DVMap.find(nodeId)==DVMap.end() || DVMap[nodeId].cost>newCost)
+	if(DVMap.find(nodeId)==DVMap.end() || DVMap[nodeId].cost > newCost)
 	{
 		//update the table
 		DVCell newCell;
 		newCell.destID = nodeId;
 		newCell.nextHopID = sourceId;
 		newCell.cost = newCost;
+		newCell.update = sys->time();
 		DVMap[nodeId] = newCell;
 		return true;
 	}
-	else
+	else {
+		DVMap[nodeId].update = sys->time();
 		return false;
+	}
 }
 
 void RoutingProtocolImpl::sendDVUpdateMessage()
@@ -307,6 +328,38 @@ void RoutingProtocolImpl::setUpdateAlarm() {
 
 /* check every expiration (link failure, table update, etc.) */
 bool RoutingProtocolImpl::handleExp() {
+	int i;
+	for (i = 0; i < numOfPorts; i++)
+		if (ports[i].isAlive && sys->time() - ports[i].update >= 15000) {
+			ports[i].isAlive = false;
+			disableForward(ports[i].linkTo);
+		}
+
+	bool isChange = false;
+	for(map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+	{
+		DVCell dvc = it->second;
+		if (sys->time() - dvc.update >= 45000) {
+			DVMap.erase(dvc.destID);
+			for (i = 0; i < numOfPorts; i++)
+				if (ports[i].isAlive && ports[i].linkTo == dvc.destID) {
+					isChange = true;
+					DVCell newCell;
+					newCell.cost = ports[i].cost;
+					newCell.destID = dvc.destID;
+					newCell.nextHopID = myID;
+					newCell.update = sys->time();
+					DVMap.insert(pair<short, DVCell>(dvc.destID, newCell));
+					break;
+				}
+		}
+	}
+
+	if (isChange) {
+		sendDVUpdateMessage();
+		updateForwardUsingDV();
+	}
+
 	return true;
 }
 
@@ -420,7 +473,7 @@ void RoutingProtocolImpl::updateForwardUsingDV()
 	for(map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 	{
 		DVCell dvc = it -> second;
-		printf("  DestID: %d, Cost: %d, NextHop: %d\n", dvc.destID, dvc.cost, dvc.nextHopID);
+		printf("  DestID: %d, Cost: %d, NextHop: %d, update: %d\n", dvc.destID, dvc.cost, dvc.nextHopID, dvc.update);
 	}
 }
 
@@ -495,11 +548,13 @@ bool RoutingProtocolImpl::DVUpdate() {
 				newCell.cost = ports[i].cost;
 				newCell.destID = ports[i].linkTo;
 				newCell.nextHopID = myID;
+				newCell.update = sys->time();
 				DVMap.insert(pair<short, DVCell>(ports[i].linkTo, newCell));
 			}
 			else {
 				//did the cost change?
 				DVCell dv = DVMap[ports[i].linkTo];
+				dv.update = sys->time();
 
 				//save the old cost
 				int oldCost = dv.cost;
@@ -529,6 +584,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 						//minus the old cost add the new cost
 						c->cost -= oldCost;
 						c->cost += ports[i].cost;
+						c->update = sys->time();
 
 						//determine if the new cost is higher than the direct Node
 						if(directConnection.find(c->destID) != directConnection.end()
@@ -557,6 +613,16 @@ bool RoutingProtocolImpl::DVUpdate() {
 						if(c.nextHopID == dvc.destID)
 						{
 							DVMap.erase(c.destID);
+							//determine if there is direct link
+							if(directConnection.find(c.destID) != directConnection.end())
+							{
+								DVCell newCell;
+								newCell.cost = directConnection[c.destID];
+								newCell.destID = c.destID;
+								newCell.nextHopID = myID;
+								newCell.update = sys->time();
+								DVMap.insert(pair<short, DVCell>(c.destID, newCell));
+							}
 						}
 					}
 				}

@@ -67,10 +67,6 @@ class RoutingProtocolImpl : public RoutingProtocol {
 
 	map<short,DVCell> DVMap;
 
-	// end time for the system
-	// just for testing, will be removed
-	unsigned int endTime;
-
 	/* functions */
 	// set the expiration checking alarm
 	void setExpAlarm();
