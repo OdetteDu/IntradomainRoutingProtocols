@@ -77,7 +77,6 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 }
 
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
-	// TODO: for EVERYONE!
 	char type = *(char*)packet;
 	switch (type)
 	{
@@ -127,6 +126,9 @@ void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned sho
 		ports[port].isAlive = true;
 		printf("\tReceive PONG: from port %d, source: %d, duration: %d, time: %d\n",
 			port, srcID, duration, currentTime);
+		// update forwarding table if it's a new link
+		if (findForward(srcID) == SPECIAL_PORT)
+			updateForward(srcID, port);
 	}
 	
 	// free memory
@@ -137,8 +139,7 @@ void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned sho
 void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned short size)
 {
 	char *pck = (char *)packet;
-	short packetSize = *(short*)(pck + 2);
-	short sourceId = *(short*)(pck + 4);
+	unsigned short sourceId = ntohs(*(short*)(pck + 4));
 	bool isChange = false;
 	int i;
 
@@ -171,10 +172,10 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 		}
 	}
 
-	for (i=0; i<packetSize/4-2; i++)
+	for (i=0; i< size/4 - 2; i++)
 	{
-		short nodeId = *(short*)(pck + 8 + i*4);
-		short cost = *(short*)(pck + 8 + 2 + i*4);
+		unsigned short nodeId = ntohs(*(short*)(pck + 8 + i*4));
+		unsigned short cost = ntohs(*(short*)(pck + 10 + i*4));
 		isChange = updateDVTable(nodeId, cost, sourceId) | isChange;
 	}
 
@@ -277,16 +278,16 @@ void RoutingProtocolImpl::sendDVUpdateMessage()
 		if(ports[i].isAlive)
 		{
 			char type = DV;
-			short size = 8 + DVMap.size()*4;
-			short sourceId = myID;
-			short destinationId = ports[i].linkTo; 
+			unsigned short size = 8 + DVMap.size()*4;
+			unsigned short sourceId = myID;
+			unsigned short destinationId = ports[i].linkTo; 
 	
 			//put the message in a packet
 			char * packet = (char *)malloc(sizeof(char) * size);
 			*packet = type;
-			*(short *)(packet+2) = size;
-			*(short *)(packet+4) = sourceId;
-			*(short *)(packet+6) = destinationId;
+			*(short *)(packet+2) = ntohs(size);
+			*(short *)(packet+4) = ntohs(sourceId);
+			*(short *)(packet+6) = ntohs(destinationId);
 
 			int index = 8;
 			for (map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
@@ -302,8 +303,8 @@ void RoutingProtocolImpl::sendDVUpdateMessage()
 				{
 					cost = newCell.cost;
 				}
-				*(short *)(packet+index) = nodeId;
-				*(short *)(packet+index+2) = cost;
+				*(short *)(packet+index) = ntohs(nodeId);
+				*(short *)(packet+index+2) = ntohs(cost);
 				index += 4;
 			}
 
