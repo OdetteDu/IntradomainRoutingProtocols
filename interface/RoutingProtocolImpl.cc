@@ -205,6 +205,8 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 		sendDVUpdateMessage();
 		updateForwardUsingDV();
 	}
+	else
+		printf("\trecvDV: nothing happens.\n");
 
 	packet = NULL;
 	delete(pck);
@@ -337,13 +339,13 @@ bool RoutingProtocolImpl::handleExp() {
 
 	bool isChange = false;
 	for(map<short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
-	{
+	{		
 		DVCell dvc = it->second;
 		if (sys->time() - dvc.update >= 45000) {
+			isChange = true;
 			DVMap.erase(dvc.destID);
 			for (i = 0; i < numOfPorts; i++)
-				if (ports[i].isAlive && ports[i].linkTo == dvc.destID) {
-					isChange = true;
+				if (ports[i].isAlive && ports[i].linkTo == dvc.destID) {					
 					DVCell newCell;
 					newCell.cost = ports[i].cost;
 					newCell.destID = dvc.destID;
@@ -537,7 +539,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 		}
 	}
 	
-	//for all the ports, 
+	//for all the ports
 	for(i=0; i<numOfPorts; i++)
 	{	
 		Port port = ports[i];
@@ -553,19 +555,19 @@ bool RoutingProtocolImpl::DVUpdate() {
 			}
 			else {
 				//did the cost change?
-				DVCell dv = DVMap[ports[i].linkTo];
-				dv.update = sys->time();
+				DVCell *dv = &DVMap[ports[i].linkTo];
+				dv->update = sys->time();
 
 				//save the old cost
-				int oldCost = dv.cost;
+				int oldCost = dv->cost;
 
-				if(dv.nextHopID != myID)
+				if(dv->nextHopID != myID)
 				{
-					  if(dv.cost > ports[i].cost)
+					  if(dv->cost > ports[i].cost)
 					  {
 						//update to use the direct link
-						dv.cost = ports[i].cost;
-						dv.nextHopID = myID;
+						dv->cost = ports[i].cost;
+						dv->nextHopID = myID;
 					  }
 					  else
 						    continue;
@@ -574,7 +576,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 					continue;
 
 				//update the direct node to the new cost
-				dv.cost = ports[i].cost;
+				dv->cost = ports[i].cost;
 				//find all the nextHop with the direct Node
 				for(map<short, DVCell>::iterator it = DVMap.begin(); it!=DVMap.end(); ++it)
 				{
