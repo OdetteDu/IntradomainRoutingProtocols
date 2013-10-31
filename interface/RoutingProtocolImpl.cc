@@ -88,7 +88,7 @@ void RoutingProtocolImpl::init_forwarding_table(){
 */
 bool RoutingProtocolImpl::LSUpdate() {
     //Upon reveiving LSP
-
+    sendLSTable();
     //updating the forwading table using Dijkstra's algorithm
     dijkstra();
 
