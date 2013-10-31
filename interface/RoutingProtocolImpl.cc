@@ -55,37 +55,7 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 }
 
 // add more of your own code
-/*----------------------------------------------- TODO: for Cheng Wan--------------------------------------------------*/
-/*
-void RoutingProtocolImpl::init_forwarding_table(){
-    queue<Node *> q;
-    vector<int> visited;
-    vector<Node *> curNei;
-    q.push(sys);
-    visited.push_back(sys->id);
-    Forwarding_record cur_record;
-    while(!q.empty()){
-        Node * cur=q.front();
-        q.pop();
-        curNei=getNeibor(cur);
-        for(std::vector<Node *>::iterator it = curNei.begin(); it != curNei.end(); ++it) {
-            if(std::find(visited.begin(), visited.end(), (*it)->id) != visited.end()) {
-                //do nothing
-            } else {
-                // v does not contain x
-                cout<<"node id is"<<(*it)->id<<endl;
-                if(!forwarding_table.count((*it)->id)){
-                    cur_record=Forwarding_record(INFINITY_COST, -1, false);
-                    forwarding_table[(*it)->id]=cur_record;
-                }
-                visited.push_back((*it)->id);
-                q.push(*it);
-            }
-        }
-    }
-    
-}
-*/
+
 bool RoutingProtocolImpl::LSUpdate() {
     //Upon reveiving LSP
     sendLSTable();
@@ -164,11 +134,6 @@ pair<unsigned short, unsigned short> RoutingProtocolImpl::nodeIDWithMinDistance(
     
     return minPair;
     
-}
-
-// set the alarm to mark inactive nodes
-void RoutingProtocolImpl::setInactiveAlarm() {
-	sys->set_alarm(this, 45000, (void*) alarm_inactive);
 }
 
 void RoutingProtocolImpl::sendLSTable(){
