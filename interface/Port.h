@@ -26,6 +26,7 @@ struct _Vertice;
 typedef struct _Vertice {
         unsigned int sequence;
         unsigned short NodeID;
+	unsigned int update;
         map<unsigned short, unsigned short> neighbor;
 } Vertice;
 

@@ -32,6 +32,7 @@ void RoutingProtocolImpl::init(unsigned short num_ports, unsigned short router_i
 	protocol = protocol_type;
 	numOfPorts = num_ports;
 	myID = router_id;
+	mySequence = 0;
 
 	// initialize all the ports and forwarding table
 	initPorts(numOfPorts);

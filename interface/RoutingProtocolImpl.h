@@ -6,6 +6,7 @@
 #include "Port.h"
 #include <netinet/in.h>
 #include <map>
+#include <set>
 
 using namespace std;
 
@@ -71,6 +72,7 @@ class RoutingProtocolImpl : public RoutingProtocol {
 
 	// map of Link State table
 	map<unsigned short, Vertice> nodeVec;
+	unsigned int mySequence;
 
 		/********** functions **********/
 
