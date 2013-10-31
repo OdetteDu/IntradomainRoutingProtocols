@@ -192,4 +192,41 @@ void RoutingProtocolImpl::setInactiveAlarm() {
 }
 
 
+void RoutingProtocolImpl::sendLSTable(){
+    //prepare creation of a P_LS packet
+    char type = P_LS;
+    unsigned short size;
+    unsigned short sourceId = myID;
+    
+    map<unsigned short, unsigned short> _portInfo;
+    //get neighbors
+    for (int i = 0; i < numOfPorts; i++) {
+        if (port[i].isAlive) {
+            _portInfo.insert(port[i].linkTo, port[i].cost);
+        }
+    }
 
+    int sequence_number = sys->time();
+    size = 12 + (_portInfo.size() * 4);
+    
+    for (int i = 0; i < numOfPorts; i++) {
+        if (port[i].isAlive) {
+            char * packet = (char *) malloc(sizeof(char) * size);
+            *packet = type;
+            *(short *)(packet + 2) = nthohs(size);
+            *(short *)(packet + 4) = nthohs(sourceId);
+            *(short *)(packet + 8) = ntohs(sequence_number)
+            
+            int index = 12;
+            for (map<unsigned short, unsigned short> iterator it = _portInfo.begin(); it != _portInfo.end(); it++) {
+                unsigned short neighborID = it->first;
+                unsigned short newCost = it->second;
+                *(short *)(packet + index) = ntohs(neighborID);
+                *(short *)(packet + index) = ntohs(newCost);
+                index += 4;
+                
+            }
+            sys->send(i, packet, size);
+        }
+    }
+}
