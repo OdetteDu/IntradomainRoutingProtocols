@@ -66,6 +66,8 @@ void RoutingProtocolImpl::dijkstra(){
     //initialization:
     Forwarding.clear();
     map<unsigned short, unsigned short> tempMap；
+    //new
+    map<unsigned short, unsigned short> tempMap2;
     /*For all nodes v;
      if v is adjacent to A
      then D(v) = c(A, v)
@@ -77,6 +79,8 @@ void RoutingProtocolImpl::dijkstra(){
     for(map<unsigned short,Vertice>::iterator _iterator = nodeVec.begin();_iterator != nodeVec.end();_iterator++){
         if(_iterator->first != myID){
             tempMap.insert(std::pair<unsigned short, unsigned short>(_iterator->first, INFINITY_COST));
+            //new
+            tempMap2.insert(std::pair<unsigned short, unsigned short>(_iterator->first, myID));
         }
     }
     for (int i = 0; i < numOfPorts; i++) {
@@ -103,16 +107,22 @@ void RoutingProtocolImpl::dijkstra(){
         map<unsigned short, unsigned short> tempNeighbor = nodeVec[w]->second.neighbor;
         for (map<unsigned short, unsigned short>::iterator _iterator = tempNeighbor.begin(); _iterator != tempNeighbor.end(); ++_iterator) {
             if (notVisited.count(_iterator->first)) {
-                unsigned short distanceToV = tempMap[_iterator->sfirst]->second;
-                unsigned short newDistanceToV = _iterator->second + distanceToW;;
-                tempMap[_iterator->first].cost = !(newDistanceToV<distanceToV)?newDistanceToV:distanceToV
+                unsigned short distanceToV = tempMap[_iterator->first]->second;
+                unsigned short newDistanceToV = _iterator->second + distanceToW;
+                //new
+                if(distanceToV <= newDistanceToV){}
+                else{
+                  tempMap[_iterator->first].second = !(newDistanceToV<distanceToV)?newDistanceToV:distanceToV;
+                  tempMap2[_iterator->first].second = W;
+                }
+                //end new
             }
         }
     }
     //update the generic forwarding table
     for (map<unsigned short, unsigned short> iterator::_iterator = tempMap.begin(); _iterator != tempMap.end(); ++_iterator) {
         for (int i = 0; i < numOfPorts; i++){
-            if (ports[i].isAlive && ports[i].linkTo == _iterator->first) {
+            if (ports[i].isAlive && ports[i].linkTo == tempMap2[_iterator->first].second) {
                 updateForward(_iterator->first, i);
             }
         }
