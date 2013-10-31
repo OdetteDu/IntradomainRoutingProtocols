@@ -51,10 +51,7 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
             }
         }
     }
-    //END Cheng------------------------------------------------------------------------------
-}
-
-// add more of your own code
+/*----------------------------------------------- TODO: for Cheng Wan--------------------------------------------------*/
 
 bool RoutingProtocolImpl::LSUpdate() {
     //Upon reveiving LSP
@@ -135,7 +132,7 @@ pair<unsigned short, unsigned short> RoutingProtocolImpl::nodeIDWithMinDistance(
     return minPair;
     
 }
-
+//function used to send a LS packet
 void RoutingProtocolImpl::sendLSTable(){
     //prepare creation of a P_LS packet
     char type = LS;
@@ -162,7 +159,7 @@ void RoutingProtocolImpl::sendLSTable(){
             *(short *)(packet + 8) = htonl(sequence_number)
             
             int index = 12;
-            for (map<unsigned short, unsigned short> iterator it = _portInfo.begin(); it != _portInfo.end(); it++) {
+            for (map<unsigned short, unsigned short>::iterator it = _portInfo.begin(); it != _portInfo.end(); it++) {
                 unsigned short neighborID = it->first;
                 unsigned short newCost = it->second;
                 *(short *)(packet + index) = htons(neighborID);
@@ -174,3 +171,4 @@ void RoutingProtocolImpl::sendLSTable(){
         }
     }
 }
+
