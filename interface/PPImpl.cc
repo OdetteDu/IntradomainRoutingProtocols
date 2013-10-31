@@ -40,8 +40,10 @@ void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned sho
 			port, srcID, duration, currentTime);
 
 		// LS mode: send LS table if this port state is changed
-		if (protocol == P_LS && isChange)
+		if (protocol == P_LS && isChange) {
 			sendLSTable();
+			dijkstra();
+		}
 
 		// update forwarding table if it's a new link
 		if (findForward(srcID) == SPECIAL_PORT)

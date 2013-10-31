@@ -117,38 +117,44 @@ bool RoutingProtocolImpl::handleExp() {
 			disableForward(ports[i].linkTo);
 		}
 	// LS mode: send LS table if port status has changed
-	if (protocol == P_LS && isChange)
+	if (protocol == P_LS && isChange) {
 		sendLSTable();
+		dijkstra();
+	}
 
-	/* check expiration of DV status */
-	isChange = false;
-	for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
-	{		
-		DVCell dvc = it->second;
-		if (sys->time() - dvc.update >= 45000) {
-			isChange = true;
-			DVMap.erase(dvc.destID);
-			for (i = 0; i < numOfPorts; i++)
-				if (ports[i].isAlive && ports[i].linkTo == dvc.destID) {					
-					DVCell newCell;
-					newCell.cost = ports[i].cost;
-					newCell.destID = dvc.destID;
-					newCell.nextHopID = myID;
-					newCell.update = sys->time();
-					DVMap.insert(pair<unsigned short, DVCell>(dvc.destID, newCell));
-					break;
-				}
+	if (protocol == P_LS)
+		/* check expiration of LS status */
+		checkLSExp();
+	else if (protocol == P_DV) {
+		/* check expiration of DV status */
+		isChange = false;
+		for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
+		{		
+			DVCell dvc = it->second;
+			if (sys->time() - dvc.update >= 45000) {
+				isChange = true;
+				DVMap.erase(dvc.destID);
+				for (i = 0; i < numOfPorts; i++)
+					if (ports[i].isAlive && ports[i].linkTo == dvc.destID) {					
+						DVCell newCell;
+						newCell.cost = ports[i].cost;
+						newCell.destID = dvc.destID;
+						newCell.nextHopID = myID;
+						newCell.update = sys->time();
+						DVMap.insert(pair<unsigned short, DVCell>(dvc.destID, newCell));
+						break;
+					}
+			}
+		}
+
+		if (isChange) {
+			printf("\tDV table has been updated. Flood the change.\n");
+			sendDVUpdateMessage();
+			updateForwardUsingDV();
 		}
 	}
 
-	if (isChange) {
-		printf("\tDV table has been updated. Flood the change.\n");
-		sendDVUpdateMessage();
-		updateForwardUsingDV();
-	}
-
-	/* check expiration of LS status */
-	checkLSExp();
+	
 
 	return true;
 }
