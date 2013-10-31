@@ -56,7 +56,7 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 
 // add more of your own code
 /*----------------------------------------------- TODO: for Cheng Wan--------------------------------------------------*/
-
+/*
 void RoutingProtocolImpl::init_forwarding_table(){
     queue<Node *> q;
     vector<int> visited;
@@ -70,9 +70,9 @@ void RoutingProtocolImpl::init_forwarding_table(){
         curNei=getNeibor(cur);
         for(std::vector<Node *>::iterator it = curNei.begin(); it != curNei.end(); ++it) {
             if(std::find(visited.begin(), visited.end(), (*it)->id) != visited.end()) {
-                /* v contains x *///do nothing
+                //do nothing
             } else {
-                /* v does not contain x */
+                // v does not contain x
                 cout<<"node id is"<<(*it)->id<<endl;
                 if(!forwarding_table.count((*it)->id)){
                     cur_record=Forwarding_record(INFINITY_COST, -1, false);
@@ -85,24 +85,10 @@ void RoutingProtocolImpl::init_forwarding_table(){
     }
     
 }
-bool RoutingProtocolImpl::updateLS() {
+*/
+bool RoutingProtocolImpl::LSUpdate() {
     //Upon reveiving LSP
-    packet *p;
-    Vertice v;
-    v= Vertice( sim->global_time, sys->id);
-    v.neighbors=port_status;
-    v.sequence = sim->global_time;
-    nodeVec[sys->id]=v;
-    
-    void *nodeVec2= &(nodeVec);
-    
-    for(int i=0; i<sys->link_vector.size();i++){
-        if((sys->link_vector[i])->get_is_alive()){
-            p = new package(4,12,sys->id,-1,(int)sys->time(),nodeVec2);
-            sys->send(i, p, sizeof(struct package));
-        }
-        
-    }
+
     //updating the forwading table using Dijkstra's algorithm
     dijkstra();
 
@@ -111,12 +97,8 @@ bool RoutingProtocolImpl::updateLS() {
                 
 void RoutingProtocolImpl::dijkstra(){
     //initialization:
-    map<unsigned short, double> dijkstraMap;
-    vector<unsigned short> S;
-    forwardTableEntry tempEntry;
-    map<unsigned short, unsigned short> newForwarding;
-    //S={A}
-    S.push_back(sys->myID);
+    Forwarding.clear();
+    map<unsigned short, unsigned short> tempMap；
     /*For all nodes v;
      if v is adjacent to A
      then D(v) = c(A, v)
@@ -125,25 +107,15 @@ void RoutingProtocolImpl::dijkstra(){
      alternatively, we create a map where all nodes v have D(v) = infinity
      then, change the cost to an adjacent nodes v to c(A,v)
      */
-    for(map<unsigned short,Vertice>::iterator its = nodeVec.begin();its != nodeVec.end();its++){
-        if(its->first != sys->id){
-            forwardTableEntry[its->first].cost=INFINITY_COST;
+    for(map<unsigned short,Vertice>::iterator _iterator = nodeVec.begin();_iterator != nodeVec.end();_iterator++){
+        if(_iterator->first != myID){
+            tempMap.insert(std::pair<unsigned short, unsigned short>(_iterator->first, INFINITY_COST));
         }
     }
-    for (map<unsigned short, portInfo>::iterator _iterator = nodeVec.begain(); _iterator != nodeVec.end(); ++_iterator) {
-        if(!fwdTable.count(its->second.neighborID)){
-            tempEntry=forwardTableEntry(_iterator->second.cost, _iterator->second.neighborID, true);
-            fwdTable[_iterator->second.neighborID]=tempEntry;
+    for (int i = 0; i < numOfPorts; i++) {
+        if (port[i].isAlive) {
+            tempMap[port[i].linkTo]->second = port[i].cost;
         }
-        else{
-            if(fwdTable[its->second.neighborID].cost>its->second.cost){
-                tempEntry=forwardTableEntry(_iterator->second.cost, _iterator->second.neighborID, true);
-                fwdTable[_iterator->second.neighborID]=tempEntry;
-            }
-        }
-    }
-    for (map<unsigned short, forwardTableEntry>::iterator _iterator = fwdTable.begain(); _iterator != fwdTable.end(); ++_iterator){
-        dijkstraMap[_iterator->first] = _iterator->second.cost;
     }
     /*Loop
     find w not in S such that D(w) is a minimum
@@ -152,33 +124,41 @@ void RoutingProtocolImpl::dijkstra(){
     unitl all nodes are in S
      */
     //setup a map of not-yet-visited nodes
-    map<unsigned short, double> notVisited;
-    notVisited = dijkstraMap;
-    notVisited.erase(sys->myID);
+    map<unsigned short, unsigned short> notVisited;
+    notVisited = tempMap;
+    notVisited.erase(myID);
     //doing the loop discribed above
     while (!notVisited.empty()) {
-        pair<unsigned short, double> nodeW = nodeIDWithMinDistance(notVisited);
+        pair<unsigned short, unsigned short> nodeW = nodeIDWithMinDistance(notVisited);
         unsigned short W = nodeW->first;
-        double distanceToW = nodeW->second;
+        unsigned short distanceToW = nodeW->second;
         notVisited.erase(w);
-        map<unsigned short, portInfo> tempNeighbor = nodeVec[w].neighbor;
-        for (map<unsigned short, portInfo>::iterator _iterator = tempNeighbor.begin(); _iterator != tempNeighbor.end(); ++_iterator) {
-            if (notVisited.count(_iterator->second.neighborID)) {
-                double distanceToV = fwdTable[_iterator->second.neighborID].cost;
-                double newDistanceToV = _iterator->second.cost + distanceToW;;
-                fwdTable[_iterator->first].cost = !(newDistanceToV<distanceToV)?newDistanceToV:distanceToV
+        map<unsigned short, unsigned short> tempNeighbor = nodeVec[w]->second.neighbor;
+        for (map<unsigned short, unsigned short>::iterator _iterator = tempNeighbor.begin(); _iterator != tempNeighbor.end(); ++_iterator) {
+            if (notVisited.count(_iterator->first)) {
+                unsigned short distanceToV = tempMap[_iterator->sfirst]->second;
+                unsigned short newDistanceToV = _iterator->second + distanceToW;;
+                tempMap[_iterator->first].cost = !(newDistanceToV<distanceToV)?newDistanceToV:distanceToV
+            }
+        }
+    }
+    //update the generic forwarding table
+    for (map<unsigned short, unsigned short> iterator::_iterator = tempMap.begin(); _iterator != tempMap.end(); ++_iterator) {
+        for (int i = 0; i < numOfPorts; i++){
+            if (ports[i].isAlive && ports[i].linkTo == _iterator->first) {
+                updateForward(_iterator->first, i);
             }
         }
     }
 }
 //function used to find the minimum cost node
-pair<short, double> RoutingProtocolImpl::nodeIDWithMinDistance(map<short, double> tempMap){
-    pair<short, double> minPair;
-    double minCost = INFINITY_COST;
-    for(map<int,double>::iterator _iterator = tempMap.begin();_iterator != tempMap.end();++_iterator){
+pair<unsigned short, unsigned short> RoutingProtocolImpl::nodeIDWithMinDistance(map<unsigned short, unsigned short> tempMap){
+    pair<unsigned short, unsigned short> minPair;
+    unsigned short minCost = INFINITY_COST;
+    for(map<unsigned short,unsigned short>::iterator _iterator = tempMap.begin();_iterator != tempMap.end();++_iterator){
         if(_iterator->second < minCost) {
             minCost=its->second;
-            min=_iterator;
+            minPair = _iterator;
         }
     }
     
@@ -191,10 +171,9 @@ void RoutingProtocolImpl::setInactiveAlarm() {
 	sys->set_alarm(this, 45000, (void*) alarm_inactive);
 }
 
-
 void RoutingProtocolImpl::sendLSTable(){
     //prepare creation of a P_LS packet
-    char type = P_LS;
+    char type = LS;
     unsigned short size;
     unsigned short sourceId = myID;
     
@@ -215,14 +194,14 @@ void RoutingProtocolImpl::sendLSTable(){
             *packet = type;
             *(short *)(packet + 2) = htons(size);
             *(short *)(packet + 4) = htons(sourceId);
-            *(short *)(packet + 8) = htons(sequence_number)
+            *(short *)(packet + 8) = htonl(sequence_number)
             
             int index = 12;
             for (map<unsigned short, unsigned short> iterator it = _portInfo.begin(); it != _portInfo.end(); it++) {
                 unsigned short neighborID = it->first;
                 unsigned short newCost = it->second;
                 *(short *)(packet + index) = htons(neighborID);
-                *(short *)(packet + index) = htons(newCost);
+                *(short *)(packet + index + 2) = htons(newCost);
                 index += 4;
                 
             }
