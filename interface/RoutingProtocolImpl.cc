@@ -213,16 +213,16 @@ void RoutingProtocolImpl::sendLSTable(){
         if (port[i].isAlive) {
             char * packet = (char *) malloc(sizeof(char) * size);
             *packet = type;
-            *(short *)(packet + 2) = nthohs(size);
-            *(short *)(packet + 4) = nthohs(sourceId);
-            *(short *)(packet + 8) = ntohs(sequence_number)
+            *(short *)(packet + 2) = htons(size);
+            *(short *)(packet + 4) = htons(sourceId);
+            *(short *)(packet + 8) = htons(sequence_number)
             
             int index = 12;
             for (map<unsigned short, unsigned short> iterator it = _portInfo.begin(); it != _portInfo.end(); it++) {
                 unsigned short neighborID = it->first;
                 unsigned short newCost = it->second;
-                *(short *)(packet + index) = ntohs(neighborID);
-                *(short *)(packet + index) = ntohs(newCost);
+                *(short *)(packet + index) = htons(neighborID);
+                *(short *)(packet + index) = htons(newCost);
                 index += 4;
                 
             }
