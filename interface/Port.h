@@ -1,6 +1,8 @@
 #ifndef PORT_H
 #define PORT_H
 
+#include <map>
+
 class Port {
   public:
 	unsigned short number;
@@ -10,18 +12,6 @@ class Port {
 	bool isAlive;
 };
 
-/*
-struct _Forward;
-
-typedef struct _Forward {
-	unsigned short destID;
-	unsigned short nextID;
-	unsigned int nextPort;
-	bool isAlive;
-	struct _Forward *next;
-} Forward;
-*/
-
 struct _DVCell;
 
 typedef struct _DVCell {
@@ -30,5 +20,13 @@ typedef struct _DVCell {
 	unsigned int cost;
 	unsigned int update;
 } DVCell;
+
+struct _Vertice;
+
+typedef struct _Vertice {
+        unsigned int sequence;
+        unsigned short NodeID;
+        map<unsigned short, unsigned short> neighbor;
+} Vertice;
 
 #endif
