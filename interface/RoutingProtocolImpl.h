@@ -43,8 +43,9 @@ class RoutingProtocolImpl : public RoutingProtocol {
 
  private:
     Node *sys; // To store Node object; used to access GSR9999 interfaces
-	/* EDIT: by Yanfei Wu */
-	/* variables */
+
+		/********** variables **********/
+
 	// currently using protocol
 	eProtocolType protocol;
 
@@ -71,7 +72,8 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	// map of Link State table
 	map<unsigned short, Vertice> nodeVec;
 
-	/* functions */
+		/********** functions **********/
+
 	// set the expiration checking alarm
 	void setExpAlarm();
 	// set the ping-pong message alarm
@@ -109,17 +111,24 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	void recvDATA(unsigned short port, void *packet, unsigned short size);
 	// Deal with PING or PONG packet
 	void recvPP(unsigned short port, void *packet, unsigned short size);
-	
-	/* END EDIT: Yanfei Wu */
 
+	// Deal with DV packet
 	void recvDV(unsigned short port, void *packet, unsigned short size);
+	// update an entry of DV table
 	bool updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId);
+	// flood DV update message
 	void sendDVUpdateMessage();
+	// use the newest DV to update forwarding table
 	void updateForwardUsingDV();
 
-	void checkLSExp();
+	// Deal with LS packet
 	void recvLS(unsigned short port, void *packet, unsigned short size);
+	// check expirations of LS Vertices
+	void checkLSExp();
+	// forward LS packet that is received from others
 	void sendReceivedLSPck(unsigned short port, char *packet, unsigned short size);
+	// flood LS packet to all alive neighbors
+	void sendLSTable();
 };
 
 #endif

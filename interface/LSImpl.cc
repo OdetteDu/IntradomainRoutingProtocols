@@ -60,6 +60,49 @@ void RoutingProtocolImpl::sendReceivedLSPck(unsigned short port, char *packet, u
 		}
 }
 
+void RoutingProtocolImpl::sendLSTable(){
+    //prepare creation of a P_LS packet
+    char type = LS;
+    unsigned short size;
+    unsigned short sourceId = myID;
+    
+    map<unsigned short, unsigned short> _portInfo;
+    //get neighbors
+    for (int i = 0; i < numOfPorts; i++) {
+        if (ports[i].isAlive) {
+            _portInfo.insert(pair<unsigned short, unsigned short>(ports[i].linkTo, ports[i].cost));
+        }
+    }
+
+    int sequence_number = sys->time();
+    size = 12 + (_portInfo.size() * 4);
+    
+	bool printed = false;
+    for (int i = 0; i < numOfPorts; i++) {
+        if (ports[i].isAlive) {
+		printf("\tSend LS table to port %d.\n", i);
+            char * packet = (char *) malloc(sizeof(char) * size);
+            *packet = type;
+            *(short *)(packet + 2) = htons(size);
+            *(short *)(packet + 4) = htons(sourceId);
+            *(int *)(packet + 8) = htonl(sequence_number);
+            
+            int index = 12;
+            for (map<unsigned short, unsigned short>::iterator it = _portInfo.begin(); it != _portInfo.end(); it++) {
+                unsigned short neighborID = it->first;
+                unsigned short newCost = it->second;
+		if (!printed)
+			printf("neighbor ID: %d, cost: %d\n", neighborID, newCost);
+                *(short *)(packet + index) = htons(neighborID);
+                *(short *)(packet + index + 2) = htons(newCost);
+                index += 4;
+            }
+		printed = true;
+            sys->send(i, packet, size);
+        }
+    }
+}
+
 void RoutingProtocolImpl::checkLSExp() {
 	for (map<unsigned short, Vertice>::iterator it = nodeVec.begin(); it != nodeVec.end(); it++) {
 		Vertice v = it->second;

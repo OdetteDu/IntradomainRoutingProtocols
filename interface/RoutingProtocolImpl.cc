@@ -108,14 +108,20 @@ void RoutingProtocolImpl::setUpdateAlarm() {
 /* check every expiration (link failure, table update, etc.) */
 bool RoutingProtocolImpl::handleExp() {
 	int i;
+	bool isChange = false;
+	/* check expiration of port status */
 	for (i = 0; i < numOfPorts; i++)
 		if (ports[i].isAlive && sys->time() - ports[i].update >= 15000) {
+			isChange = true;
 			ports[i].isAlive = false;
 			disableForward(ports[i].linkTo);
 		}
+	// LS mode: send LS table if port status has changed
+	if (protocol == P_LS && isChange)
+		sendLSTable();
 
 	/* check expiration of DV status */
-	bool isChange = false;
+	isChange = false;
 	for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 	{		
 		DVCell dvc = it->second;

@@ -6,7 +6,7 @@ void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned sho
 	ePacketType type = (ePacketType)(*(char *)packet);
 	unsigned short srcID = ntohs(*(unsigned short*)(receive + 4));
 
-	if (type == PING) {
+	if (type == PING) {	// received a PING packet
 		char *pongpackage = (char *)malloc(12 * sizeof(char));
 		ePacketType pongtype = PONG;
 		*pongpackage = pongtype;				//packet type
@@ -17,17 +17,32 @@ void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned sho
 		printf("\tReceive PING: from port %d, source: %d, time stamp: %d\n", port, 
 			srcID, ntohl(*(int *)(receive + 8)));
 		sys->send(port,pongpackage, 12);
-	} else if (type == PONG) {
+	} else if (type == PONG) {	// received a PONG packet
 		unsigned int currentTime = sys->time();
 		unsigned int startsendtime = ntohl(*(int*)(receive + 8));
 		unsigned int duration = currentTime - startsendtime;
 		// update port status
-		ports[port].linkTo = srcID;
-		ports[port].cost = duration;
+		bool isChange = false;
+		if (ports[port].linkTo != srcID) {
+			isChange = true;
+			ports[port].linkTo = srcID;
+		}
+		if (ports[port].cost != duration) {
+			isChange = true;
+			ports[port].cost = duration;
+		}
 		ports[port].update = currentTime;
-		ports[port].isAlive = true;
+		if (!ports[port].isAlive) {
+			isChange = true;
+			ports[port].isAlive = true;
+		}
 		printf("\tReceive PONG: from port %d, source: %d, duration: %d, time: %d\n",
 			port, srcID, duration, currentTime);
+
+		// LS mode: send LS table if this port state is changed
+		if (protocol == P_LS && isChange)
+			sendLSTable();
+
 		// update forwarding table if it's a new link
 		if (findForward(srcID) == SPECIAL_PORT)
 			updateForward(srcID, port);
@@ -41,7 +56,6 @@ void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned sho
 /* send ping-pong message to update costs of neighbours */
 bool RoutingProtocolImpl::handlePP() {
 	printf("  Node %d: pingpong message!\n", myID);
-	/* TODO: for Kai Wu*/
 	
 	int count = numOfPorts;
 	while (count > 0){
