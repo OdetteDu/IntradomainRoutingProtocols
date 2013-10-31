@@ -1,6 +1,8 @@
 #include "RoutingProtocolImpl.h"
 
 bool RoutingProtocolImpl::LSUpdate() {
+	sendLSTable();
+	dijkstra();
 	return true;
 }
 
@@ -52,7 +54,7 @@ void RoutingProtocolImpl::sendReceivedLSPck(unsigned short port, char *packet, u
 			*(unsigned short*)(toSend+2) = htons(size);
 			*(unsigned short*)(toSend+4) = *(unsigned short*)(packet+4);
 			*(unsigned int*)(toSend+8) = *(unsigned int*)(packet+8);
-			for (int j = 0; i < size - 12; j += 4) {
+			for (int j = 0; j < size - 12; j += 4) {
 				*(unsigned short*)(toSend+12+j) = *(unsigned short*)(packet + 12 + j);
 				*(unsigned short*)(toSend+14+j) = *(unsigned short*)(packet + 14 + j);
 			}
@@ -107,6 +109,7 @@ void RoutingProtocolImpl::dijkstra(){
             }
         }
     }
+
     //update the generic forwarding table
     for (map<unsigned short, unsigned short>::iterator _iterator = tempMap.begin(); _iterator != tempMap.end(); ++_iterator) {
         for (int i = 0; i < numOfPorts; i++){
@@ -122,7 +125,7 @@ pair<unsigned short, unsigned short> RoutingProtocolImpl::nodeIDWithMinDistance(
     unsigned short minID = -1;
     unsigned short minCost = INFINITY_COST;
     for(map<unsigned short,unsigned short>::iterator its = tempMap.begin(); its != tempMap.end(); ++its){
-        if(its->second < minCost) {
+        if(its->second <= minCost) {
 	    minID = its->first;
             minCost = its->second;
         }
