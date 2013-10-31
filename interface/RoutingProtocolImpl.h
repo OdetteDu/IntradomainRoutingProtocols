@@ -123,6 +123,10 @@ class RoutingProtocolImpl : public RoutingProtocol {
 
 	// Deal with LS packet
 	void recvLS(unsigned short port, void *packet, unsigned short size);
+	// get shortest path by using Dijkstra algorithm
+	void dijkstra();
+	// get the nearest node that is not in the work set
+	pair<unsigned short, unsigned short> nodeIDWithMinDistance(map<unsigned short, unsigned short> tempMap);
 	// check expirations of LS Vertices
 	void checkLSExp();
 	// forward LS packet that is received from others
