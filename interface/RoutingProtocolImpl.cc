@@ -82,6 +82,7 @@ void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short
 		recvDV(port, packet, size);
 		break;
 	case LS:
+		recvLS(port, packet, size);
 		break;
 	default:
 		printf("Port %d:\n\t***Error*** Unknown packet occurs\n\ttime: %d\n\n", port, sys->time());
@@ -113,6 +114,7 @@ bool RoutingProtocolImpl::handleExp() {
 			disableForward(ports[i].linkTo);
 		}
 
+	/* check expiration of DV status */
 	bool isChange = false;
 	for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 	{		
@@ -138,6 +140,9 @@ bool RoutingProtocolImpl::handleExp() {
 		sendDVUpdateMessage();
 		updateForwardUsingDV();
 	}
+
+	/* check expiration of LS status */
+	checkLSExp();
 
 	return true;
 }

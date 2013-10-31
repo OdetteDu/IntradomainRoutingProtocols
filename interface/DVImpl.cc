@@ -105,21 +105,21 @@ void RoutingProtocolImpl::sendDVUpdateMessage()
 			char type = DV;
 			unsigned short size = 8 + DVMap.size()*4;
 			unsigned short sourceId = myID;
-			unsigned short destinationId = ports[i].linkTo; 
+			unsigned short destinationId = ports[i].linkTo;
 	
 			//put the message in a packet
 			char * packet = (char *)malloc(sizeof(char) * size);
 			*packet = type;
-			*(short *)(packet+2) = ntohs(size);
-			*(short *)(packet+4) = ntohs(sourceId);
-			*(short *)(packet+6) = ntohs(destinationId);
+			*(short *)(packet+2) = htons(size);
+			*(short *)(packet+4) = htons(sourceId);
+			*(short *)(packet+6) = htons(destinationId);
 
 			int index = 8;
 			for (map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 			{
 				DVCell newCell = it->second;
-				short nodeId = newCell.destID;
-				short cost;
+				unsigned short nodeId = newCell.destID;
+				unsigned short cost;
 				if(ports[i].linkTo == newCell.nextHopID)
 				{
 					cost = INFINITY_COST;
@@ -128,8 +128,8 @@ void RoutingProtocolImpl::sendDVUpdateMessage()
 				{
 					cost = newCell.cost;
 				}
-				*(short *)(packet+index) = ntohs(nodeId);
-				*(short *)(packet+index+2) = ntohs(cost);
+				*(short *)(packet+index) = htons(nodeId);
+				*(short *)(packet+index+2) = htons(cost);
 				index += 4;
 			}
 
@@ -144,7 +144,7 @@ void RoutingProtocolImpl::updateForwardUsingDV()
 
 	for(int i=0; i<numOfPorts; i++)
 		if (ports[i].isAlive)
-			portTable.insert(pair<unsigned short, unsigned int>(ports[i].linkTo, ports[i].number));
+			portTable.insert(pair<unsigned short, unsigned short>(ports[i].linkTo, ports[i].number));
 	
 	Forwarding.clear();
 	for (map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)

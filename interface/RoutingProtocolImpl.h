@@ -68,6 +68,9 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	// map of Distance Vector table
 	map<unsigned short, DVCell> DVMap;
 
+	// map of Link State table
+	map<unsigned short, Vertice> nodeVec;
+
 	/* functions */
 	// set the expiration checking alarm
 	void setExpAlarm();
@@ -113,6 +116,10 @@ class RoutingProtocolImpl : public RoutingProtocol {
 	bool updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId);
 	void sendDVUpdateMessage();
 	void updateForwardUsingDV();
+
+	void checkLSExp();
+	void recvLS(unsigned short port, void *packet, unsigned short size);
+	void sendReceivedLSPck(unsigned short port, char *packet, unsigned short size);
 };
 
 #endif
