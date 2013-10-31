@@ -34,43 +34,16 @@ class RoutingProtocolImpl : public RoutingProtocol {
     // special port number of SPECIAL_PORT (see global.h) to indicate
     // that the packet is generated locally and not received from 
     // a neighbor router.
-    struct package{
-        char type;
-        unsigned short size;
-        unsigned short srcid;
-        unsigned short dstid;
-        int data;
-        void *table;
-        package(){};
-        package(char type, unsigned short size, unsigned short srcid, unsigned short dstid, int data, void *table):type(type),size(size),srcid(srcid),dstid(dstid),data(data),table(table){};
-    };
-
+    //---------------------------------Cheng----------------------
     struct Vertice{
         int sequence;
         unsigned short NodeID;
-        map<unsigned short,portInfo> neighbor;
+        map<unsigned short,unsigned short> neighbor;
         Vertice(){};
-        Vertice(int sequence, short NodeID) : sequence(sequence), NodeID(NodeID){};
-    };
-    struct forwardTableEntry{
-        double cost;
-        unsigned short nextHop;
-        bool adjacency;
-        forwardTableEntry() : cost(0), nextHop(0), direct(false){};
-        forwardTableEntry(double cost, unsigned short nextHop, bool adjacency) : cost(cost), nextHop(nextHop), adjacency(adjacency){};
-    };
-    struct portInfo{
-        unsigned short neighborID;
-        double cost;
-        portInfo(){};
-        portInfo(short neighborID, double cost) : neighborID(neighborID), cost(cost){};
-    };
-    map<unsigned short, forwardTableEntry> fwdTable;
+       
     map<unsigned short, Vertice> nodeVec;
-    map<unsigned short,portInfo> portStatus;
-    
-    int sequence
 
+    //
  private:
     Node *sys; // To store Node object; used to access GSR9999 interfaces 
 };
