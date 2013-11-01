@@ -96,7 +96,11 @@ bool RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short co
 	if (nodeId == myID || cost == INFINITY_COST)
 		return false;
 
-	unsigned int newCost = cost + DVMap[sourceId].cost;
+	unsigned int newCost = (unsigned int)cost + (unsigned int)DVMap[sourceId].cost;
+	if (newCost >= INFINITY_COST) {	  
+		DVMap.erase(nodeId);
+		return true;
+	}
 	if(DVMap.find(nodeId)==DVMap.end() || DVMap[nodeId].cost > newCost
 		|| (DVMap[nodeId].nextHopID == sourceId && newCost != DVMap[nodeId].cost))
 	{
