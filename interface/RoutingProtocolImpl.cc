@@ -1,5 +1,6 @@
 #include "RoutingProtocolImpl.h"
 
+//Contruct a RoutingProtocolImpl class
 RoutingProtocolImpl::RoutingProtocolImpl(Node *n) : RoutingProtocol(n) {
 	sys = n;
 
@@ -15,6 +16,7 @@ RoutingProtocolImpl::RoutingProtocolImpl(Node *n) : RoutingProtocol(n) {
 	ports = NULL;
 }
 
+//Destruct a RoutingProtocolImpl class
 RoutingProtocolImpl::~RoutingProtocolImpl() {
 	// free the memory allocated for ports and forwarding table
 	if (ports != NULL)
@@ -27,6 +29,7 @@ RoutingProtocolImpl::~RoutingProtocolImpl() {
 	delete[] alarm_update;
 }
 
+//init the RoutingProtocolImpl
 void RoutingProtocolImpl::init(unsigned short num_ports, unsigned short router_id, eProtocolType protocol_type) {
 	// remenber informations for this rounter
 	protocol = protocol_type;
@@ -47,6 +50,7 @@ void RoutingProtocolImpl::init(unsigned short num_ports, unsigned short router_i
 	setUpdateAlarm();
 }
 
+//handle the situation when alarm is ringing
 void RoutingProtocolImpl::handle_alarm(void *data) {
 	char type = *(char*)data;
 	switch (type) {
@@ -68,6 +72,7 @@ void RoutingProtocolImpl::handle_alarm(void *data) {
 	}
 }
 
+//handle the situation when receive a new packet
 void RoutingProtocolImpl::recv(unsigned short port, void *packet, unsigned short size) {
 	char type = *(char*)packet;
 	switch (type)
