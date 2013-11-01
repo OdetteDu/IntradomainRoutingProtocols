@@ -1,0 +1,10 @@
+
+team members:
+	Yanfei Wu
+	Yang Du
+	Cheng Wan
+	Kai Wu
+
+Test cases and their results are inside the "test" directory (e.g. t1_LS is the test result of test1 using Link State protocol)
+
+We are using one slip day in this project.

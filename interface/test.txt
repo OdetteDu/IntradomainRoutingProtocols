@@ -1,0 +1,49 @@
+Testing strategy 
+
+1. Introduction
+At the end of this project, we implemented two routing protocols: a Distance vector protocol and a Link state protocol. In order to test them, we adopted testing methods as following.
+
+2. Test cases
+As stored in the folder "test", we created 3 test cases to examine our routing protocols. This is not including all tests we used for testing, but just those typical ones.
+
+"test1" contains a rather simple four-node-loop topology. During the test, the connection between node 3 and node 4 dies and comes back up.
+
+"test2" contains a more complex nine-node topology. Beside the complexity, what makes this method different is that the cost of the connection between node 2 and node 3 varies once. Also, two connections die at the same time making part of the network unreachable.
+
+The last test case, "test3" contains 11 nodes. Two bottleneck structures make this topology unique. A corruption of either bottleneck connection will result a group of node unreachable.
+
+The reason why we don't include test cases that contain packet-lost probabilities (we did test that), is that any packet loss will trigger expiration detection to treat it as broken link or lost protocol message, so router will behave according to it. The logic here is that all timeouts are less than two times of periodic updates. (15-second timeout for 10-second periodic PINGPONG, 45-second timeout for 30-second periodic protocol updates) So any packet loss will make them out-of-date in port status or protocol status.
+
+3. Testing procedures
+In both systematic and component tests, we print informations that are useful to observe the correctness, including alarm types, ports and senders of received packets, protocol states and forwarding tables when they are changed or sent out. With these informations in output, it's easier to see whether behaviors are expected.
+
+(1)PINGPONG
+Making PINGPONG function correct is the guarantee for future implementation. Therefore, we test PINGPONG as soon as we built it and fixed any possible bugs we encountered. The strategy here is to create link-dying and delay-changing event at two kinds of time points: times of 10 (the same time when PINGPONG update is happening) & usual time (no other events may happen, except the 0.9-second expiration check).
+
+(2)Distance Vector (DV) / Link State (LS) Protocol
+As soon as we built one protocol component, we went through all tests provided by instructors to make sure there is no compile errors and all behaviors are expected in simple cases. Then we modified the "simpletest3" to make situation a little more complicated, such as letting accidents happen at the same time when periodic updates happen (e.g. link dies at 10 seconds). These modifications can be observed in "test1" we submit. 
+
+After passing "test1", "test2" and "test3" are tested. Breaking links in critical positions (i.e. "busy" roads, such as (3,6) in "test2", or bottleneck, such as (4,5) in "test3") will impact the whole network seviously. So we use these cases to observe how the protocol and forwarding behave. Also, we add transmitting packets that need long-way forwarding to make sure every router correctly forwards those packets. Increasing delays to see if routers will change their routing paths is also tested.
+
+(3)Systematic
+When all protocol behaviors seems correct, transmitting DATA packets help to see the consequences of changes in DV/LS state. Out of protocol details, we observe the routing path of every DATA packet to test the systematic correctness.
+
+3. Testing results and discussion
+Every time a port status is changed (such as a new neighbor is detected), protocol status and forwarding tables will be changed to reflect the change of port status, and the new status will be flooded to all neighbors to keep them informed (i.e. sending LS/DV tables).
+
+When a broken link or a changing-delay link happens, the router which is directly affected will discover this situation when timeout is detected or PINGPONG updates. Then it will start to re-compute DV/LS tables and forwarding tables, and send the new information to all neighbors. Other routers will capture this information and make their own changes.
+
+We print DV/LS tables and forwarding tables when they are changed, on the purpose of checking the correctness. Also, many transmitting DATA packets in the test cases will be observed to confirm the changes, by using the current forwarding table. 
+
+The network functions as expected. At 0.1 second, the sending function all result an "unreachable" error because all routers are in intial state so no neighbors and forwarding table are recognized. The every-10-second ping-pong packets periodically probe the costs of connections, update the forwarding tables if costs are changed and flood out new protocol-state packets to inform others nodes the change. 
+
+When it comes to edge conditions, e.g. a connection is disabled at 45 s, the related nodes are not aware of the change until 55s when an alarm is handled from 40s when the previous pong packets are received. As for the 50-second ping-pong process, the ping packets are lost on died connections. The change of costs will result in similar behaviors.
+
+Since the simulator process simultaneous events in a one-by-one manner, some packets are still being forwarded when a connection is disabled at the same time but after the transition.
+
+All records showed that the forwarding tables in each node are updated correctly when cost change are received.
+
+If loop to infinity is caused in DV protocol, the updating procedure will detect and remove the entry in DV table when the path cost exceeds INFINITY_COST.
+
+4. Summary
+To conclude, our routing protocols send packets properly and update the forwarding table timely. We believe our protocols are correct.
