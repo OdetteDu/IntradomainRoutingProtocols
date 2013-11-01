@@ -1,11 +1,13 @@
 #include "RoutingProtocolImpl.h"
 
+//do the update every 30 minutes
 bool RoutingProtocolImpl::LSUpdate() {
 	sendLSTable();
 	dijkstra();
 	return true;
 }
 
+//handle the situation when receive a packet with the type LS
 void RoutingProtocolImpl::recvLS(unsigned short port, void *packet, unsigned short size) {
 	char *pck = (char *)packet;
 	unsigned short srcID = ntohs(*(unsigned short*)(pck + 4));
@@ -60,6 +62,7 @@ void RoutingProtocolImpl::recvLS(unsigned short port, void *packet, unsigned sho
 	delete pck;
 }
 
+//send the received LS packet
 void RoutingProtocolImpl::sendReceivedLSPck(unsigned short port, char *packet, unsigned short size) {
 	for (int i = 0; i < numOfPorts; i++)
 		if (i != port) {
@@ -76,6 +79,7 @@ void RoutingProtocolImpl::sendReceivedLSPck(unsigned short port, char *packet, u
 		}
 }
 
+//perform the dijkstra Algorithm
 void RoutingProtocolImpl::dijkstra(){
 	set<unsigned short> visited;				// nodes that have been visited
 	set<unsigned short> visiting;				// nodes that will be visited
@@ -137,6 +141,7 @@ void RoutingProtocolImpl::dijkstra(){
 	}
 }
 
+//send the LS table to all its neighbors
 void RoutingProtocolImpl::sendLSTable(){
     //prepare creation of a P_LS packet
     char type = LS;
@@ -181,6 +186,7 @@ void RoutingProtocolImpl::sendLSTable(){
     }
 }
 
+//check LS expiration
 void RoutingProtocolImpl::checkLSExp() {
 	for (map<unsigned short, Vertice>::iterator it = nodeVec.begin(); it != nodeVec.end(); it++) {
 		Vertice v = it->second;
