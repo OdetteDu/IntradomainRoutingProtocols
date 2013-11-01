@@ -1,5 +1,6 @@
 #include "RoutingProtocolImpl.h"
 
+//handle the situation when receive a DV type packet 
 void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned short size)
 {
 	char *pck = (char *)packet;
@@ -89,6 +90,7 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 	delete(pck);
 }
 
+//update an entry of DVTable
 bool RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short cost, unsigned short sourceId)
 {
 	if (nodeId == myID || cost == INFINITY_COST)
@@ -113,6 +115,7 @@ bool RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short co
 	}
 }
 
+//send the whole DV table to the neighbors
 void RoutingProtocolImpl::sendDVUpdateMessage()
 {
 	for(int i=0; i<numOfPorts; i++)
@@ -155,6 +158,7 @@ void RoutingProtocolImpl::sendDVUpdateMessage()
 	}
 }
 
+//update the forward table using the dv table
 void RoutingProtocolImpl::updateForwardUsingDV()
 {
 	map<unsigned short, unsigned int> portTable; //of destId nextPort
@@ -181,6 +185,7 @@ void RoutingProtocolImpl::updateForwardUsingDV()
 	}
 }
 
+//handle the update every 30 minutes
 bool RoutingProtocolImpl::DVUpdate() {
 	int i;
 	map<unsigned short, unsigned int> directConnection;
