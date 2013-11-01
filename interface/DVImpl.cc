@@ -8,18 +8,15 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 	int i;
 	printf("\treceive from %d\n", sourceId);
 
-	if(DVMap.find(sourceId)==DVMap.end())
-	{
-		int portNumber = -1;
-		for(int j=0; j<numOfPorts; j++)
-		{
-			  if(ports[j].linkTo == sourceId)
-			  {
-				  portNumber = j;
-				  break;
-			  }
+	int portNumber = -1;
+	for(int j=0; j<numOfPorts; j++)
+		if(ports[j].linkTo == sourceId) {
+			portNumber = j;
+			break;
 		}
 
+	if(DVMap.find(sourceId) == DVMap.end())
+	{
 		if (portNumber != -1)
 		{
 			isChange = true;
@@ -34,6 +31,14 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 			return;
 		}
 	}
+	/*
+	else if (portNumber > -1 && ports[portNumber].cost < DVMap[sourceId].cost) {
+		isChange = true;
+		DVMap[sourceId].destID = sourceId;
+		DVMap[sourceId].cost = ports[portNumber].cost;
+		DVMap[sourceId].nextHopID = myID;
+		DVMap[sourceId].update = sys->time();
+	}*/
 
 	for (i=0; i< size/4 - 2; i++)
 	{
@@ -60,11 +65,23 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 				}
 		}
 	}
-
-	if (isChange) {
-		sendDVUpdateMessage();
-		updateForwardUsingDV();
-	}
+	
+	/*
+	for (i = 0; i < numOfPorts; i++)
+		if (ports[i].isAlive) {
+			if (DVMap.find(ports[i].linkTo) == DVMap.end()) {
+				DVMap[ports[i].linkTo].destID = ports[i].linkTo;
+				DVMap[ports[i].linkTo].cost = ports[i].cost;
+				DVMap[ports[i].linkTo].nextHopID = myID;
+				DVMap[ports[i].linkTo].update = sys->time();
+			}
+			else if (DVMap[ports[i].linkTo].nextHopID != myID && DVMap[ports[i].linkTo].cost >= ports[i].cost) {
+				
+			}			
+		}
+	*/
+	if (isChange)
+		DVUpdate();
 	else
 		printf("\trecvDV: nothing happens.\n");
 
@@ -270,6 +287,6 @@ bool RoutingProtocolImpl::DVUpdate() {
 	}
 
 	updateForwardUsingDV();
-	sendDVUpdateMessage();	
+	sendDVUpdateMessage();
 	return true;
 }
