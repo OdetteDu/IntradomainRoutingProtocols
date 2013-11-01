@@ -72,7 +72,7 @@ class RoutingProtocolImpl : public RoutingProtocol {
 
 	// map of Link State table
 	map<unsigned short, Vertice> nodeVec;
-	unsigned int mySequence;
+	unsigned int mySequence;		// my sequence number
 
 		/********** functions **********/
 

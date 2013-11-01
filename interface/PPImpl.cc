@@ -40,9 +40,16 @@ void RoutingProtocolImpl::recvPP(unsigned short port, void *packet, unsigned sho
 			port, srcID, duration, currentTime);
 
 		// LS mode: send LS table if this port state is changed
-		if (protocol == P_LS && isChange) {
-			sendLSTable();
-			dijkstra();
+		// DV mode: ignore all DV tables sent before the link is changed
+		if (isChange) {
+			if (protocol == P_LS) {
+				printf("\tLS table may have been updated. Flood the change.\n");
+				LSUpdate();
+			}
+			else if (protocol == P_DV) {
+				printf("\tDV table may have been updated. Flood the change.\n");
+				DVUpdate();
+			}
 		}
 
 		// update forwarding table if it's a new link

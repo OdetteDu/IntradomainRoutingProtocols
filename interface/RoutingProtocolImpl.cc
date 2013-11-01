@@ -117,18 +117,12 @@ bool RoutingProtocolImpl::handleExp() {
 			ports[i].isAlive = false;
 			disableForward(ports[i].linkTo);
 		}
-	// LS mode: send LS table if port status has changed
-	if (protocol == P_LS && isChange) {
-		sendLSTable();
-		dijkstra();
-	}
 
 	if (protocol == P_LS)
 		/* check expiration of LS status */
 		checkLSExp();
 	else if (protocol == P_DV) {
 		/* check expiration of DV status */
-		isChange = false;
 		for(map<unsigned short, DVCell>::iterator it = DVMap.begin(); it != DVMap.end(); ++it)
 		{		
 			DVCell dvc = it->second;
@@ -147,15 +141,20 @@ bool RoutingProtocolImpl::handleExp() {
 					}
 			}
 		}
-
-		if (isChange) {
-			printf("\tDV table has been updated. Flood the change.\n");
-			sendDVUpdateMessage();
-			updateForwardUsingDV();
-		}
 	}
 
-	
+	// LS mode: send LS table if port status has changed
+	// DV mode: update DV tables and send it
+	if (isChange) {
+			if (protocol == P_LS) {
+				printf("\tLS table is been updated. Flood the change.\n");
+				LSUpdate();
+			}
+			else if (protocol == P_DV) {
+				printf("\tDV table is updated. Flood the change.\n");
+				DVUpdate();
+			}
+		}
 
 	return true;
 }

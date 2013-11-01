@@ -29,6 +29,8 @@ void RoutingProtocolImpl::recvLS(unsigned short port, void *packet, unsigned sho
 			toAdd.neighbor.insert(pair<unsigned short, unsigned short>(nID, cost));
 		}
 		nodeVec.insert(pair<unsigned short, Vertice>(srcID, toAdd));
+		// update the LS table
+		dijkstra();
 		// flood this packet
 		sendReceivedLSPck(port, pck, size);
 	}
@@ -46,6 +48,8 @@ void RoutingProtocolImpl::recvLS(unsigned short port, void *packet, unsigned sho
 			printf("\tnode ID: %d, cost: %d\n", nID, cost);
 			v->neighbor.insert(pair<unsigned short, unsigned short>(nID, cost));
 		}
+		// update the LS table
+		dijkstra();
 		// flood this packet
 		sendReceivedLSPck(port, pck, size);
 	}

@@ -6,7 +6,6 @@ void RoutingProtocolImpl::recvDV(unsigned short port, void *packet, unsigned sho
 	unsigned short sourceId = ntohs(*(short*)(pck + 4));
 	bool isChange = false;
 	int i;
-
 	printf("\treceive from %d\n", sourceId);
 
 	if(DVMap.find(sourceId)==DVMap.end())
@@ -79,7 +78,8 @@ bool RoutingProtocolImpl::updateDVTable(unsigned short nodeId, unsigned short co
 		return false;
 
 	unsigned int newCost = cost + DVMap[sourceId].cost;
-	if(DVMap.find(nodeId)==DVMap.end() || DVMap[nodeId].cost > newCost)
+	if(DVMap.find(nodeId)==DVMap.end() || DVMap[nodeId].cost > newCost
+		|| (DVMap[nodeId].nextHopID == sourceId && newCost != DVMap[nodeId].cost))
 	{
 		//update the table
 		DVCell newCell;
@@ -165,7 +165,6 @@ void RoutingProtocolImpl::updateForwardUsingDV()
 }
 
 bool RoutingProtocolImpl::DVUpdate() {
-	
 	int i;
 	map<unsigned short, unsigned int> directConnection;
 
@@ -270,7 +269,7 @@ bool RoutingProtocolImpl::DVUpdate() {
 		}
 	}
 
-	sendDVUpdateMessage();
 	updateForwardUsingDV();
+	sendDVUpdateMessage();	
 	return true;
 }
